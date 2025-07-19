@@ -1,0 +1,2 @@
+com.koach.jpa.NativeQueryAutoConfiguration
+com.koach.jpa.NativeQueryExceptionAutoConfiguration

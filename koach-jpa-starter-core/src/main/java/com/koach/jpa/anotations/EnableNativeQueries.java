@@ -8,6 +8,7 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 @Import(NativeQueryRepositoryRegistrar.class)
+@SuppressWarnings("unused")
 public @interface EnableNativeQueries {
     String[] basePackages() default {};
 }

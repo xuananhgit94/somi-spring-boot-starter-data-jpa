@@ -11,12 +11,10 @@ public class SafeEntityManagerProvider {
     @PersistenceContext
     private EntityManager entityManager;
     public EntityManager getEntityManager() {
-        if (isSafeProxy(entityManager)) {
-            return entityManager;
-        } else {
+        if (!isSafeProxy(entityManager)) {
             log.warn("EntityManager is NOT transactional-scoped! You may be outside @Transactional context.");
-            return entityManager;
         }
+        return entityManager;
     }
     private boolean isSafeProxy(EntityManager em) {
         return AopUtils.isAopProxy(em) || Proxy.isProxyClass(em.getClass());

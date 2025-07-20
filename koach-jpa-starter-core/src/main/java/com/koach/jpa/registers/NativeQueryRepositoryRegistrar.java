@@ -1,6 +1,5 @@
 package com.koach.jpa.registers;
 import com.koach.jpa.anotations.EnableNativeQueries;
-import com.koach.jpa.anotations.QueryId;
 import com.koach.jpa.constants.AppConstants;
 import com.koach.jpa.enums.ErrorMessage;
 import com.koach.jpa.exceptions.DefaultNativeQueryException;
@@ -18,7 +17,6 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.util.CollectionUtils;
 import java.beans.Introspector;
 import java.util.Arrays;

@@ -17,7 +17,7 @@ public class NativeQueryRepositoryFactoryBean<T> implements FactoryBean<T> {
         this.queryByIdExecutor = queryByIdExecutor;
     }
     @Override
-    public T getObject() throws Exception {
+    public T getObject() {
         if (this.queryByIdExecutor == null) {
             DefaultNativeQueryException.fail(ErrorMessage.QUERYBYIDEXECUTOR_WAS_NOT_INJECTED);
         }

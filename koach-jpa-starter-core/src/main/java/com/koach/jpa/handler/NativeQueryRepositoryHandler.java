@@ -12,13 +12,8 @@ import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Optional;
 
-public class NativeQueryRepositoryHandler implements InvocationHandler {
-    private final Class<?> repoInterface;
-    private final QueryByIdExecutor queryByIdExecutor;
-    public NativeQueryRepositoryHandler(Class<?> repoInterface, QueryByIdExecutor queryByIdExecutor) {
-        this.repoInterface = repoInterface;
-        this.queryByIdExecutor = queryByIdExecutor;
-    }
+public record NativeQueryRepositoryHandler(Class<?> repoInterface,
+                                           QueryByIdExecutor queryByIdExecutor) implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getDeclaringClass() == Object.class) {
@@ -32,6 +27,7 @@ public class NativeQueryRepositoryHandler implements InvocationHandler {
         Class<?> actualType = resolveActualReturnType(method);
         return queryByIdExecutor.execute(queryId.value(), args, containerType, actualType, queryId.type());
     }
+
     private Class<?> resolveActualReturnType(Method method) {
         ResolvableType rt = ResolvableType.forMethodReturnType(method);
         Class<?> resolved = rt.resolve();
@@ -47,6 +43,7 @@ public class NativeQueryRepositoryHandler implements InvocationHandler {
         }
         return resolved;
     }
+
     @SuppressWarnings("unchecked")
     public <T> T createProxy() {
         return (T) Proxy.newProxyInstance(repoInterface.getClassLoader(), new Class[]{repoInterface}, this);

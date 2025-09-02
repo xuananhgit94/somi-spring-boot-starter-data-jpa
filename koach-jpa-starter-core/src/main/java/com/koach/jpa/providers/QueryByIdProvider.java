@@ -25,7 +25,7 @@ public class QueryByIdProvider {
     private final String[] classpathPaths;
     @PostConstruct
     public void loadQueries() {
-        queryMap = new HashMap<>();
+        Map<String, String> tmpQueryMap = new HashMap<>();
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             DocumentBuilder builder = DocumentBuilderFactory
@@ -35,9 +35,10 @@ public class QueryByIdProvider {
                 log.info("Loading queries from classpath: {}", classpath);
                 Resource[] resources = resolver.getResources(classpath);
                 for (Resource resource : resources) {
-                    processQueryFile(resource, builder);
+                    processQueryFile(resource, builder, tmpQueryMap);
                 }
             }
+            queryMap = Map.copyOf(tmpQueryMap);
             log.info("Loaded total {} queries", queryMap.size());
         } catch (Exception e) {
             if (e instanceof IOException) {
@@ -46,7 +47,7 @@ public class QueryByIdProvider {
             DefaultNativeQueryException.fail(ErrorMessage.LOAD_QUERY_ERROR, e);
         }
     }
-    private void processQueryFile(Resource resource, DocumentBuilder builder) {
+    private void processQueryFile(Resource resource, DocumentBuilder builder, Map<String, String> tmpQueryMap) {
         try (InputStream in = resource.getInputStream()) {
             log.debug("Processing query file: {}", resource.getFilename());
             Document doc = builder.parse(in);
@@ -62,7 +63,7 @@ public class QueryByIdProvider {
                 if (queryMap.containsKey(id)) {
                     DefaultNativeQueryException.fail(ErrorMessage.DUPLICATE_QUERY_ID, id, resource.getFilename());
                 }
-                queryMap.put(id, sql);
+                tmpQueryMap.put(id, sql);
                 log.debug("Loaded query: [{}] from file: {}", id, resource.getFilename());
             }
         } catch (Exception ex) {

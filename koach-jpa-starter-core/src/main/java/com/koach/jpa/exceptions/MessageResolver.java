@@ -7,13 +7,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 
 import java.util.Locale;
 
-public class MessageResolver {
-
-    private final MessageSource messageSource;
-
-    public MessageResolver(MessageSource messageSource) {
-        this.messageSource = messageSource;
-    }
+public record MessageResolver(MessageSource messageSource) {
 
     public String get(ErrorMessage error, Object... args) {
         Locale locale = LocaleContextHolder.getLocale();

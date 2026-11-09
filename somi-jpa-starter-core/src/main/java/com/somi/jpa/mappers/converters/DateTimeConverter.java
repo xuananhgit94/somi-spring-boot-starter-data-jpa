@@ -19,6 +19,8 @@ import java.time.format.DateTimeParseException;
  * Converts JDBC and string values to {@code java.time} types. Legacy {@code java.util.Date} targets are not
  * produced here: a {@code Timestamp} is already a {@code Date}, other values go through Jackson.
  */
+// java.sql.Timestamp/Date/Time are what JDBC drivers return; they are only read here and converted to java.time
+@SuppressWarnings("java:S2143")
 public class DateTimeConverter implements ValueConverter {
     @Override
     public boolean supports(Object raw, Type targetType) {

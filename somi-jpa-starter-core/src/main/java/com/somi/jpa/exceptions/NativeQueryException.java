@@ -4,14 +4,20 @@ import com.somi.jpa.enums.ErrorMessage;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSourceResolvable;
 
+import java.io.Serial;
+
 public class NativeQueryException extends RuntimeException implements MessageSourceResolvable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private final ErrorMessage error;
     private final transient Object[] args;
 
     private NativeQueryException(ErrorMessage error, @Nullable Throwable cause, Object[] args) {
-        super(error.format(args), cause);
+        Object[] arguments = args.clone();
         this.error = error;
-        this.args = args.clone();
+        this.args = arguments;
+        super(error.format(arguments), cause);
     }
 
     public static NativeQueryException of(ErrorMessage error, Object... args) {

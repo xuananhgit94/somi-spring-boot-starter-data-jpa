@@ -30,7 +30,7 @@ public final class RecordMappingStrategy<T> implements ObjectMappingStrategy<T> 
     @Override
     public T map(@Nullable Object[] tuple, @Nullable String[] aliases) throws ReflectiveOperationException {
         Map<String, @Nullable Object> row = ObjectMappingStrategy.toRowMap(tuple, aliases);
-        @Nullable Object[] args = new Object[components.length];
+        var args = new @Nullable Object[components.length];
         for (int i = 0; i < components.length; i++) {
             args[i] = conversionService.convert(row.get(keys[i]), components[i].getGenericType());
         }

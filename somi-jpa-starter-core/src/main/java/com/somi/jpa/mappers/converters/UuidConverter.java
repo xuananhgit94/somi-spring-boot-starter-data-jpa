@@ -6,7 +6,7 @@ import com.somi.jpa.exceptions.NativeQueryException;
 import java.lang.reflect.Type;
 import java.util.UUID;
 
-public class UuidConverter implements ValueConverter {
+public final class UuidConverter implements ValueConverter {
 
     @Override
     public boolean supports(Object raw, Type targetType) {

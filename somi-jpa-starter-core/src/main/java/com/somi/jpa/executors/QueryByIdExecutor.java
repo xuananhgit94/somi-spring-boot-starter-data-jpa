@@ -182,17 +182,22 @@ public class QueryByIdExecutor {
         if (args == null) return;
         for (int i = 0; i < args.length; i++) {
             int position = i + 1;
-            Object value = args[i];
             Class<?> declaredType = method.parameterTypes().get(i);
-            if (value instanceof Enum<?> constant) {
-                query.setParameter(position, constant.name());
-            } else if (value != null || Collection.class.isAssignableFrom(declaredType) || declaredType.isArray()
-                    || declaredType == Object.class) {
-                query.setParameter(position, value);
-            } else {
-                Class bindType = declaredType.isEnum() ? String.class : ClassUtils.resolvePrimitiveIfNecessary(declaredType);
-                query.setParameter(position, null, bindType);
+            switch (args[i]) {
+                case Enum<?> constant -> query.setParameter(position, constant.name());
+                case null -> bindNull(query, position, declaredType);
+                case Object value -> query.setParameter(position, value);
             }
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void bindNull(NativeQuery query, int position, Class<?> declaredType) {
+        if (declaredType == Object.class || declaredType.isArray() || Collection.class.isAssignableFrom(declaredType)) {
+            query.setParameter(position, null);
+        } else {
+            Class bindType = declaredType.isEnum() ? String.class : ClassUtils.resolvePrimitiveIfNecessary(declaredType);
+            query.setParameter(position, null, bindType);
         }
     }
 

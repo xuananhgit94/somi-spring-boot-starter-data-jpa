@@ -6,7 +6,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-public class NumberConverter implements ValueConverter {
+public final class NumberConverter implements ValueConverter {
     @Override
     public boolean supports(Object raw, Type targetType) {
         return raw instanceof Number && targetType instanceof Class<?> cls

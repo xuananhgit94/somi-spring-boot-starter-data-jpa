@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 
-public class StringConverter implements ValueConverter {
+public final class StringConverter implements ValueConverter {
 
     @Override
     public boolean supports(Object raw, Type targetType) {

@@ -13,7 +13,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 
-public class DateTimeConverter implements ValueConverter {
+public final class DateTimeConverter implements ValueConverter {
     @Override
     public boolean supports(Object raw, Type targetType) {
         if (!(targetType instanceof Class<?> cls)) return false;

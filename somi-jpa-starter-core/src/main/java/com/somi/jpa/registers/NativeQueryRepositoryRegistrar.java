@@ -6,15 +6,12 @@ import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.NativeQueryException;
 import com.somi.jpa.factories.NativeQueryRepositoryFactoryBean;
 import com.somi.jpa.filters.QueryIdMethodFilter;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.context.EnvironmentAware;
-import org.springframework.context.ResourceLoaderAware;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.env.Environment;
@@ -24,22 +21,15 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("NullAway.Init")
-public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
-    private ResourceLoader resourceLoader;
-    private Environment environment;
+public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegistrar {
+    private final ResourceLoader resourceLoader;
+    private final Environment environment;
 
-    @Override
-    public void setResourceLoader(ResourceLoader resourceLoader) {
+    public NativeQueryRepositoryRegistrar(ResourceLoader resourceLoader, Environment environment) {
         this.resourceLoader = resourceLoader;
-    }
-
-    @Override
-    public void setEnvironment(Environment environment) {
         this.environment = environment;
     }
 
@@ -92,7 +82,7 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
     }
 
     private static Set<String> resolveBasePackages(AnnotationMetadata metadata) {
-        @Nullable Map<String, @Nullable Object> attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
+        var attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
         if (attributes != null && attributes.get(AppConstants.BASE_PACKAGE_SCAN) instanceof String[] basePackages) {
             Set<String> packages = Arrays.stream(basePackages).filter(StringUtils::hasText).collect(Collectors.toSet());
             if (!packages.isEmpty()) {

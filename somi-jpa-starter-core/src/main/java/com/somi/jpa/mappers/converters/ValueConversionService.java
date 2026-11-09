@@ -38,16 +38,16 @@ public class ValueConversionService {
     }
 
     public @Nullable Object convert(@Nullable Object raw, Type targetType) {
-        if (raw == null) return null;
+        return switch (raw) {
+            case null -> null;
+            case Object value when targetType instanceof Class<?> cls && ClassUtils.isAssignableValue(cls, value) -> value;
+            case String text when text.isBlank() -> null;
+            case Array sqlArray -> convertValue(unwrapSqlArray(sqlArray), targetType);
+            default -> convertValue(raw, targetType);
+        };
+    }
 
-        if (targetType instanceof Class<?> cls && ClassUtils.isAssignableValue(cls, raw)) {
-            return raw;
-        }
-        if (raw instanceof String str && str.isBlank()) {
-            return null;
-        }
-        Object value = raw instanceof Array sqlArray ? unwrapSqlArray(sqlArray) : raw;
-
+    private @Nullable Object convertValue(Object value, Type targetType) {
         for (ValueConverter converter : converters) {
             if (converter.supports(value, targetType)) {
                 return converter.convert(value, targetType);

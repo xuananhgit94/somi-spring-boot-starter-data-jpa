@@ -1,9 +1,13 @@
 package com.somi.jpa.handler;
 
 import com.somi.jpa.annotations.QueryId;
+import com.somi.jpa.annotations.QueryNamespace;
 import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.NativeQueryException;
+import com.somi.jpa.providers.QueryByIdProvider;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -38,7 +42,7 @@ public record QueryMethod(String name,
         if (modifying && !MODIFYING_RETURN_TYPES.contains(containerType)) {
             throw NativeQueryException.of(ErrorMessage.NOT_MODIFYING_QUERY, name, containerType.getName());
         }
-        return new QueryMethod(name, queryId.value(), modifying, queryId.flushAutomatically(),
+        return new QueryMethod(name, resolveQueryKey(queryId, repositoryInterface), modifying, queryId.flushAutomatically(),
                 queryId.clearAutomatically(), containerType, resolveResultType(method, repositoryInterface, name),
                 List.of(method.getParameterTypes()));
     }
@@ -49,6 +53,14 @@ public record QueryMethod(String name,
 
     public boolean returnsOptional() {
         return containerType == Optional.class;
+    }
+
+    private static String resolveQueryKey(QueryId queryId, Class<?> repositoryInterface) {
+        if (StringUtils.hasText(queryId.namespace())) {
+            return QueryByIdProvider.key(queryId.namespace(), queryId.value());
+        }
+        QueryNamespace namespace = AnnotatedElementUtils.findMergedAnnotation(repositoryInterface, QueryNamespace.class);
+        return namespace == null ? queryId.value() : QueryByIdProvider.key(namespace.value(), queryId.value());
     }
 
     private static Class<?> resolveResultType(Method method, Class<?> repositoryInterface, String name) {

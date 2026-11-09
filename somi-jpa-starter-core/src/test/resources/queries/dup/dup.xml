@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<queries>
+    <query id="SAME">SELECT 1</query>
+    <query id="SAME">SELECT 2</query>
+</queries>

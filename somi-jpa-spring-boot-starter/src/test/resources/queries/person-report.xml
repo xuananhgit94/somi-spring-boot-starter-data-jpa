@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<queries namespace="report">
+    <query id="FIND_BY_ID"><![CDATA[
+        SELECT UPPER(full_name) FROM person WHERE id = ?1
+    ]]></query>
+</queries>

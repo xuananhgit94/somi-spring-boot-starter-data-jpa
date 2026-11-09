@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<queries namespace="sales">
+    <query id="FIND_BY_ID">SELECT * FROM orders WHERE id = ?1</query>
+</queries>

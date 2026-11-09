@@ -98,6 +98,17 @@ class NativeQueryIntegrationTest {
                 .hasMessageContaining("missing.id");
     }
 
+    @Autowired
+    ReportQueries reportQueries;
+
+    @Test
+    void sameQueryIdInDifferentFilesIsResolvedByNamespace() {
+        assertThat(reportQueries.findDisplayName(1L)).contains("NGUYEN VAN A");
+        assertThat(reportQueries.findPerson(1L)).get().extracting(PersonRecord::fullName).isEqualTo("Nguyen Van A");
+        assertThat(queryByIdProvider.contains("person.FIND_BY_ID")).isTrue();
+        assertThat(queryByIdProvider.contains("report.FIND_BY_ID")).isTrue();
+    }
+
     @Test
     void concreteAndSortedCollectionTypes() {
         assertThat(queries.findIdsSorted()).isInstanceOf(java.util.TreeSet.class).containsExactly(1L, 2L);

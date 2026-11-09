@@ -17,14 +17,14 @@ Full guide (Vietnamese): [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md)
 </dependency>
 ```
 
-`src/main/resources/queries/person.xml`:
+`src/main/resources/queries/person.xml` (the file name is the namespace, `person`):
 
 ```xml
 <queries>
-    <query id="person.findActive"><![CDATA[
+    <query id="FIND_ACTIVE"><![CDATA[
         SELECT id, full_name, created_at FROM person WHERE status = ?1
     ]]></query>
-    <query id="person.deactivate"><![CDATA[
+    <query id="DEACTIVATE"><![CDATA[
         UPDATE person SET status = 'INACTIVE' WHERE id = ?1
     ]]></query>
 </queries>
@@ -35,13 +35,14 @@ Full guide (Vietnamese): [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md)
 @EnableNativeQueries
 class Application { }
 
+@QueryNamespace("person")
 interface PersonQueries {
     record PersonRow(Long id, String fullName, LocalDateTime createdAt) {}
 
-    @QueryId("person.findActive")
+    @QueryId("FIND_ACTIVE")
     List<PersonRow> findActive(String status);        // also Set, Optional, single value, scalar (Long, String...)
 
-    @QueryId(value = "person.deactivate", type = QueryType.MODIFIER)
+    @QueryId(value = "DEACTIVATE", type = QueryType.MODIFIER)
     int deactivate(Long id);                           // void, int or long
 
     default Optional<PersonRow> firstActive() {        // default methods run as written
@@ -49,6 +50,10 @@ interface PersonQueries {
     }
 }
 ```
+
+Query ids only need to be unique within one file: `order.xml` may also define `FIND_ACTIVE`.
+A file can declare another namespace with `<queries namespace="...">`, and a method can target another file
+with `@QueryId(value = "FIND_BY_ID", namespace = "order")`.
 
 Columns map to record components, setters and projection getters by name, ignoring case and
 underscores (`full_name` and `address_line_1` match `fullName` and `addressLine1`).
@@ -69,7 +74,7 @@ Native `UPDATE`/`DELETE` statements bypass the persistence context. Use the `@Qu
 loaded in the same transaction must see the change:
 
 ```java
-@QueryId(value = "person.rename", type = QueryType.MODIFIER,
+@QueryId(value = "RENAME", type = QueryType.MODIFIER,
          flushAutomatically = true, clearAutomatically = true)
 int rename(Long id, String name);
 ```
@@ -87,7 +92,7 @@ JPA and Hibernate errors are translated to Spring's `DataAccessException` hierar
 | `somi.jpa.max-rows`              | none                           | Collection queries returning more rows fail with `MAX_ROWS_EXCEEDED` |
 
 Keep `log-parameter-values` off in production: parameters often hold personal data.
-Query ids are global across all jars on the classpath, so prefix them (`orders.findById`).
+Namespaces are global across all jars on the classpath, so give query files business-specific names.
 
 JSON columns are read with the application's Jackson 3 `JsonMapper` when one is defined.
 

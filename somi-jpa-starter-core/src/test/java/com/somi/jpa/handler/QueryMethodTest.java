@@ -1,6 +1,7 @@
 package com.somi.jpa.handler;
 
 import com.somi.jpa.annotations.QueryId;
+import com.somi.jpa.annotations.QueryNamespace;
 import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.enums.QueryType;
 import com.somi.jpa.exceptions.NativeQueryException;
@@ -59,6 +60,30 @@ class QueryMethodTest {
         QueryMethod method = QueryMethod.from(RowRepo.class.getMethod("findAll"), RowRepo.class);
 
         assertThat(method.resultType()).isEqualTo(Row.class);
+    }
+
+    @QueryNamespace("user")
+    interface UserQueries {
+        @QueryId("FIND_BY_ID")
+        Optional<Row> findById(Long id);
+
+        @QueryId(value = "FIND_BY_ID", namespace = "order")
+        Optional<Row> findOrder(Long id);
+    }
+
+    interface AdminQueries extends UserQueries {
+        @QueryId("FIND_ALL")
+        List<Row> findAll();
+    }
+
+    @Test
+    void resolvesQueryKeysFromNamespaces() throws Exception {
+        assertThat(QueryMethod.from(UserQueries.class.getMethod("findById", Long.class), UserQueries.class).queryId())
+                .isEqualTo("user.FIND_BY_ID");
+        assertThat(QueryMethod.from(UserQueries.class.getMethod("findOrder", Long.class), UserQueries.class).queryId())
+                .isEqualTo("order.FIND_BY_ID");
+        assertThat(QueryMethod.from(AdminQueries.class.getMethod("findAll"), AdminQueries.class).queryId())
+                .isEqualTo("user.FIND_ALL");
     }
 
     @Test

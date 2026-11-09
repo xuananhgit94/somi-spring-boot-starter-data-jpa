@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface BaseQueries<T> {
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     List<T> findAllGeneric();
 
     String describe();

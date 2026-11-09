@@ -2,6 +2,9 @@ package com.koach.jpa.mappers.converters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.koach.jpa.enums.ErrorMessage;
+import com.koach.jpa.exceptions.DefaultNativeQueryException;
+import com.koach.jpa.utils.TypeUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -12,33 +15,27 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
 
     @Override
     public boolean supports(Object raw, Type targetType) {
-        if (raw == null) return false;
-        Class<?> rawClass = raw.getClass();
+        if (raw == null || TypeUtils.isSimpleType(TypeFactory.rawClass(targetType))) return false;
         return (raw instanceof String)
                 || isPgObject(raw)
-                || Map.class.isAssignableFrom(rawClass)
-                || Collection.class.isAssignableFrom(rawClass);
+                || raw instanceof Map
+                || raw instanceof Collection;
     }
 
     @Override
     public Object convert(Object raw, Type targetType) {
+        if (raw instanceof Map || raw instanceof Collection) {
+            try {
+                return objectMapper.convertValue(raw, TypeFactory.defaultInstance().constructType(targetType));
+            } catch (IllegalArgumentException e) {
+                throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, raw, targetType.getTypeName());
+            }
+        }
+        String json = raw instanceof String str ? str : extractPgObjectValue(raw);
         try {
-            if (raw instanceof String str) {
-                return objectMapper.readValue(str,
-                        TypeFactory.defaultInstance().constructType(targetType));
-            }
-            if (isPgObject(raw)) {
-                String json = extractPgObjectValue(raw);
-                return objectMapper.readValue(json,
-                        TypeFactory.defaultInstance().constructType(targetType));
-            }
-            if (raw instanceof Map || raw instanceof Collection) {
-                return objectMapper.convertValue(raw,
-                        TypeFactory.defaultInstance().constructType(targetType));
-            }
-            return raw;
+            return objectMapper.readValue(json, TypeFactory.defaultInstance().constructType(targetType));
         } catch (Exception e) {
-            throw new RuntimeException("JsonConverter failed for " + targetType, e);
+            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_JSON_FAIL, targetType.getTypeName(), json);
         }
     }
 
@@ -53,8 +50,12 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
         }
     }
 
-    private String extractPgObjectValue(Object pgObject) throws Exception {
-        Method getValue = pgObject.getClass().getMethod("getValue");
-        return (String) getValue.invoke(pgObject);
+    private String extractPgObjectValue(Object pgObject) {
+        try {
+            Method getValue = pgObject.getClass().getMethod("getValue");
+            return (String) getValue.invoke(pgObject);
+        } catch (Exception e) {
+            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_JSON_FAIL, "PGobject", pgObject);
+        }
     }
 }

@@ -19,7 +19,9 @@ public enum ErrorMessage {
     SQL_TO_ARRAY_FAIL("error.convert.array.fail", "Failed to convert SQL Array"),
     STRING_TO_CHARACTER_FAIL("error.convert.character.fail", "Cannot convert String %s to Character. String must be a single character"),
     STRING_TO_JSON_FAIL("error.convert.json.fail", "Failed to parse JSON string to %s. JSON: %s"),
-    STRING_TO_ENUM_FAIL("error.convert.enum.fail", "Failed to convert String %s to Enum type %s");
+    STRING_TO_ENUM_FAIL("error.convert.enum.fail", "Failed to convert String %s to Enum type %s"),
+    STRING_TO_UUID_FAIL("error.convert.uuid.fail", "Failed to convert String %s to UUID"),
+    CONVERT_VALUE_FAIL("error.convert.value.fail", "Failed to convert value %s to %s");
 
 
     private final String code;

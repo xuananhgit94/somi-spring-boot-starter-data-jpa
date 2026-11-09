@@ -1,5 +1,8 @@
 package com.koach.jpa.mappers.converters;
 
+import com.koach.jpa.enums.ErrorMessage;
+import com.koach.jpa.exceptions.DefaultNativeQueryException;
+
 import java.lang.reflect.Type;
 import java.util.UUID;
 
@@ -12,7 +15,11 @@ public class UuidConverter implements ValueConverter {
 
     @Override
     public Object convert(Object raw, Type targetType) {
-        if (raw instanceof UUID) return raw;
-        return UUID.fromString(raw.toString());
+        String str = raw.toString().trim();
+        try {
+            return UUID.fromString(str);
+        } catch (IllegalArgumentException e) {
+            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_UUID_FAIL, str);
+        }
     }
 }

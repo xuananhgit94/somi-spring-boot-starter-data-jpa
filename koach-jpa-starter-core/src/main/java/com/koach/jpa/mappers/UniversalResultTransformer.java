@@ -7,7 +7,14 @@ import org.hibernate.query.TupleTransformer;
 import java.util.*;
 
 public record UniversalResultTransformer<T>(Class<T> targetClass,
-                                            boolean isInterface) implements TupleTransformer<T>, ResultListTransformer<T> {
+                                            boolean isInterface,
+                                            ObjectMappingStrategy<T> strategy) implements TupleTransformer<T>, ResultListTransformer<T> {
+
+    // Resolve the strategy once so its reflection caches live for the whole result set
+    public UniversalResultTransformer(Class<T> targetClass, boolean isInterface) {
+        this(targetClass, isInterface, MappingStrategyFactory.getStrategy(targetClass, isInterface));
+    }
+
     @Override
     public List<T> transformList(List<T> list) {
         return list;
@@ -15,7 +22,6 @@ public record UniversalResultTransformer<T>(Class<T> targetClass,
 
     @Override
     public T transformTuple(Object[] tuple, String[] aliases) {
-        ObjectMappingStrategy<T> strategy = MappingStrategyFactory.getStrategy(targetClass, isInterface);
         try {
             return strategy.map(tuple, aliases, targetClass);
         } catch (Exception e) {

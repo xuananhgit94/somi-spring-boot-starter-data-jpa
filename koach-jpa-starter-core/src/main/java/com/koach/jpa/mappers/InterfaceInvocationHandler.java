@@ -1,6 +1,7 @@
 package com.koach.jpa.mappers;
 
 import com.koach.jpa.utils.ConverterUtils;
+import com.koach.jpa.utils.NamingUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -22,7 +23,7 @@ public class InterfaceInvocationHandler implements InvocationHandler {
         Object rawValue = dataMap.get(propertyName.toLowerCase());
 
         if (rawValue == null) {
-            String snakeCasePropertyName = fromCamelCaseToSnakeCase(propertyName);
+            String snakeCasePropertyName = NamingUtils.fromCamelCaseToSnakeCase(propertyName);
             rawValue = dataMap.get(snakeCasePropertyName);
         }
         return ConverterUtils.convertValue(rawValue, method.getReturnType());
@@ -37,11 +38,5 @@ public class InterfaceInvocationHandler implements InvocationHandler {
             }
             return methodName;
         });
-    }
-    private String fromCamelCaseToSnakeCase(String camelCaseString) {
-        if (camelCaseString == null || camelCaseString.isEmpty()) {
-            return camelCaseString;
-        }
-        return camelCaseString.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase();
     }
 }

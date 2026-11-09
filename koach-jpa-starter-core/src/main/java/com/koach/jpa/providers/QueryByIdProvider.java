@@ -1,4 +1,5 @@
 package com.koach.jpa.providers;
+import com.koach.jpa.configs.NativeQueryException;
 import com.koach.jpa.constants.AppConstants;
 import com.koach.jpa.enums.ErrorMessage;
 import com.koach.jpa.exceptions.DefaultNativeQueryException;
@@ -60,12 +61,14 @@ public class QueryByIdProvider {
                     log.warn("Skipping invalid <query> node: missing id or content in file {}", resource.getFilename());
                     continue;
                 }
-                if (queryMap.containsKey(id)) {
+                if (tmpQueryMap.containsKey(id)) {
                     DefaultNativeQueryException.fail(ErrorMessage.DUPLICATE_QUERY_ID, id, resource.getFilename());
                 }
                 tmpQueryMap.put(id, sql);
                 log.debug("Loaded query: [{}] from file: {}", id, resource.getFilename());
             }
+        } catch (NativeQueryException ex) {
+            throw ex;
         } catch (Exception ex) {
             log.error("Failed to parse query file: {}", resource.getFilename(), ex);
             DefaultNativeQueryException.fail(ErrorMessage.FAIL_PARSE_QUERY,resource.getFilename(), ex);

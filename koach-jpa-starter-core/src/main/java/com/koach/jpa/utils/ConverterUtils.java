@@ -6,8 +6,12 @@ import com.koach.jpa.enums.ErrorMessage;
 import com.koach.jpa.exceptions.DefaultNativeQueryException;
 import com.koach.jpa.mappers.converters.ValueConverter;
 import com.koach.jpa.mappers.converters.*;
+import org.springframework.util.ClassUtils;
 
 import java.lang.reflect.Type;
+import java.sql.Array;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,14 +20,15 @@ public class ConverterUtils {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private ConverterUtils() {
     }
+    // Order matters: type-specific converters first; JsonConverter only claims non-simple targets
     private static final List<ValueConverter> VALUE_CONVERTERS = List.of(
             new NumberConverter(),
             new EnumConverter(),
-            new JsonConverter(OBJECT_MAPPER),
             new StringConverter(),
             new DateTimeConverter(),
-            new ArrayConverter(OBJECT_MAPPER),
             new UuidConverter(),
+            new JsonConverter(OBJECT_MAPPER),
+            new ArrayConverter(OBJECT_MAPPER),
             new CollectionConverter(OBJECT_MAPPER),
             new MapConverter(OBJECT_MAPPER)
     );
@@ -41,23 +46,35 @@ public class ConverterUtils {
     public static Object convertValue(Object raw, Type targetType) {
         if (raw == null) return null;
 
-        if (targetType instanceof Class<?> cls && cls.isAssignableFrom(raw.getClass())) {
+        if (targetType instanceof Class<?> cls && ClassUtils.isAssignableValue(cls, raw)) {
             return raw;
         }
+        if (raw instanceof String str && str.isBlank()) {
+            return null;
+        }
+        Object value = raw instanceof Array sqlArray ? unwrapSqlArray(sqlArray) : raw;
 
         return VALUE_CONVERTERS.stream()
-                .filter(c -> c.supports(raw, targetType))
+                .filter(c -> c.supports(value, targetType))
                 .findFirst()
-                .map(c -> c.convert(raw, targetType))
+                .map(c -> c.convert(value, targetType))
                 .orElseGet(() -> {
                     try {
                         return OBJECT_MAPPER.convertValue(
-                                raw,
+                                value,
                                 TypeFactory.defaultInstance().constructType(targetType)
                         );
-                    } catch (Exception e) {
-                        throw DefaultNativeQueryException.of(e, ErrorMessage.FAILED_TO_MAPPER, targetType.getTypeName());
+                    } catch (IllegalArgumentException e) {
+                        throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, value, targetType.getTypeName());
                     }
                 });
+    }
+
+    private static List<Object> unwrapSqlArray(Array sqlArray) {
+        try {
+            return Arrays.asList((Object[]) sqlArray.getArray());
+        } catch (SQLException e) {
+            throw DefaultNativeQueryException.of(e, ErrorMessage.SQL_TO_ARRAY_FAIL);
+        }
     }
 }

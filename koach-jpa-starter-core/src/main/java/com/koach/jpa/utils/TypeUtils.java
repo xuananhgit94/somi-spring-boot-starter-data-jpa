@@ -5,11 +5,11 @@ public class TypeUtils {
 
     public static boolean isSimpleType(Class<?> type) {
         return type.isPrimitive()
+                || type.isEnum()
                 || type.getName().startsWith("java.lang.")
-                || type == java.util.Date.class
-                || type == java.time.LocalDate.class
-                || type == java.time.LocalDateTime.class
-                || type == java.time.LocalTime.class
+                || type.getName().startsWith("java.math.")
+                || type.getName().startsWith("java.time.")
+                || java.util.Date.class.isAssignableFrom(type)
                 || type == java.util.UUID.class;
     }
 }

@@ -1,6 +1,7 @@
 package com.koach.jpa.mappers;
 
 import com.koach.jpa.utils.ConverterUtils;
+import com.koach.jpa.utils.NamingUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.RecordComponent;
@@ -15,21 +16,14 @@ public class RecordMappingStrategy<T> implements ObjectMappingStrategy<T> {
         Object[] args = new Object[components.length];
         Map<String, Object> dataMap = ConverterUtils.buildDataMap(tuple, aliases);
         for (int i = 0; i < components.length; i++) {
-            String componentName = components[i].getName().toLowerCase();
-            Object rawValue = dataMap.get(componentName);
+            String componentName = components[i].getName();
+            Object rawValue = dataMap.get(componentName.toLowerCase());
             if (rawValue == null) {
-                rawValue = dataMap.get(fromCamelCaseToSnakeCase(componentName));
+                rawValue = dataMap.get(NamingUtils.fromCamelCaseToSnakeCase(componentName));
             }
             args[i] = ConverterUtils.convertValue(rawValue, components[i].getType());
         }
         Constructor<T> constructor = targetClass.getDeclaredConstructor(paramTypes);
         return constructor.newInstance(args);
-    }
-
-    private String fromCamelCaseToSnakeCase(String camelCaseString) {
-        if (camelCaseString == null || camelCaseString.isEmpty()) {
-            return camelCaseString;
-        }
-        return camelCaseString.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase();
     }
 }

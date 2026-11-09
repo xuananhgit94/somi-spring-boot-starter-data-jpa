@@ -5,9 +5,6 @@ import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import com.somi.jpa.factories.NativeQueryRepositoryFactoryBean;
 import com.somi.jpa.filters.QueryIdMethodFilter;
-import io.micrometer.common.util.StringUtils;
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -18,22 +15,22 @@ import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import java.beans.Introspector;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware {
     private ResourceLoader resourceLoader;
     @Override
-    public void setResourceLoader(@NonNull ResourceLoader resourceLoader) {
+    public void setResourceLoader(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
     }
 
     @Override
-    public void registerBeanDefinitions(@NonNull AnnotationMetadata metadata, @NonNull BeanDefinitionRegistry registry) {
+    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
         Set<String> basePackages = resolveBasePackages(metadata);
         ClassPathScanningCandidateComponentProvider scanner = createScanner();
         scanner.setResourceLoader(resourceLoader);
@@ -50,7 +47,7 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
 
     private void registerRepository(BeanDefinition bd, BeanDefinitionRegistry registry) throws ClassNotFoundException {
         String className = bd.getBeanClassName();
-        if (StringUtils.isBlank(className)) {
+        if (!StringUtils.hasText(className)) {
             return;
         }
         Class<?> candidate = Class.forName(className);
@@ -70,18 +67,18 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
                 addIncludeFilter(new QueryIdMethodFilter());
             }
             @Override
-            protected boolean isCandidateComponent(@NonNull AnnotatedBeanDefinition beanDefinition) {
+            protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
                 return beanDefinition.getMetadata().isInterface();
             }
         };
     }
 
-    private Set<String> resolveBasePackages(@NonNull AnnotationMetadata metadata) {
+    private Set<String> resolveBasePackages(AnnotationMetadata metadata) {
         Map<String, Object> attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
         if (!CollectionUtils.isEmpty(attributes)) {
             String[] basePackages = (String[]) attributes.get(AppConstants.BASE_PACKAGE_SCAN);
             if (basePackages != null && basePackages.length > 0) {
-                return Arrays.stream(basePackages).filter(StringUtils::isNotBlank).collect(Collectors.toSet());
+                return Arrays.stream(basePackages).filter(StringUtils::hasText).collect(Collectors.toSet());
             }
         }
         return Set.of(metadata.getClassName().substring(0, metadata.getClassName().lastIndexOf('.')));

@@ -1,7 +1,7 @@
 package com.somi.jpa.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.type.TypeFactory;
 import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import com.somi.jpa.mappers.converters.ValueConverter;
@@ -62,7 +62,7 @@ public class ConverterUtils {
                     try {
                         return OBJECT_MAPPER.convertValue(
                                 value,
-                                TypeFactory.defaultInstance().constructType(targetType)
+                                OBJECT_MAPPER.getTypeFactory().constructType(targetType)
                         );
                     } catch (IllegalArgumentException e) {
                         throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, value, targetType.getTypeName());

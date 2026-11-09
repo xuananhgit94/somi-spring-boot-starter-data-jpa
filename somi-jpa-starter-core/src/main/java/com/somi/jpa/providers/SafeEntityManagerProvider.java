@@ -2,12 +2,13 @@ package com.somi.jpa.providers;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 
 import java.lang.reflect.Proxy;
-@Slf4j
 public class SafeEntityManagerProvider {
+    private static final Logger log = LoggerFactory.getLogger(SafeEntityManagerProvider.class);
     @PersistenceContext
     private EntityManager entityManager;
     public EntityManager getEntityManager() {

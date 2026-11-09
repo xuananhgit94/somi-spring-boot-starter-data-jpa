@@ -1,7 +1,7 @@
 package com.somi.jpa.mappers.converters;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.type.TypeFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.type.TypeFactory;
 import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import com.somi.jpa.utils.TypeUtils;
@@ -26,14 +26,14 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
     public Object convert(Object raw, Type targetType) {
         if (raw instanceof Map || raw instanceof Collection) {
             try {
-                return objectMapper.convertValue(raw, TypeFactory.defaultInstance().constructType(targetType));
+                return objectMapper.convertValue(raw, objectMapper.getTypeFactory().constructType(targetType));
             } catch (IllegalArgumentException e) {
                 throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, raw, targetType.getTypeName());
             }
         }
         String json = raw instanceof String str ? str : extractPgObjectValue(raw);
         try {
-            return objectMapper.readValue(json, TypeFactory.defaultInstance().constructType(targetType));
+            return objectMapper.readValue(json, objectMapper.getTypeFactory().constructType(targetType));
         } catch (Exception e) {
             throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_JSON_FAIL, targetType.getTypeName(), json);
         }

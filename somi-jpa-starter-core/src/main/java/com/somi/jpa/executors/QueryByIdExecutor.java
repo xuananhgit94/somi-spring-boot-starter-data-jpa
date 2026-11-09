@@ -5,13 +5,15 @@ import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import com.somi.jpa.mappers.UniversalResultTransformer;
 import com.somi.jpa.providers.QueryByIdProvider;
 import com.somi.jpa.providers.SafeEntityManagerProvider;
-import io.micrometer.common.util.StringUtils;
+import com.somi.jpa.utils.ConverterUtils;
+import com.somi.jpa.utils.TypeUtils;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Query;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.hibernate.query.NativeQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,11 +24,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-@RequiredArgsConstructor
-@Slf4j
 public class QueryByIdExecutor {
+    private static final Logger log = LoggerFactory.getLogger(QueryByIdExecutor.class);
     private final QueryByIdProvider queryByIdProvider;
     private SafeEntityManagerProvider safeEntityManagerProvider;
+
+    public QueryByIdExecutor(QueryByIdProvider queryByIdProvider) {
+        this.queryByIdProvider = queryByIdProvider;
+    }
 
     @Autowired
     public void setSafeEntityManagerProvider(SafeEntityManagerProvider safeEntityManagerProvider) {
@@ -35,7 +40,7 @@ public class QueryByIdExecutor {
     @SuppressWarnings("unchecked")
     public <T> T execute(String queryId, Object[] args, Class<?> containerType, Class<T> resultType, QueryType queryType) {
         String sql = queryByIdProvider.getQuery(queryId);
-        if (StringUtils.isBlank(sql)) {
+        if (!StringUtils.hasText(sql)) {
             DefaultNativeQueryException.fail(ErrorMessage.QUERY_ID_NOT_FOUND, queryId);
         }
         if (log.isDebugEnabled()) {
@@ -60,6 +65,8 @@ public class QueryByIdExecutor {
             boolean isInterface = resultType.isInterface();
             if (isEntity) {
                 return (T) handleEntityResult(query.unwrap(NativeQuery.class).addEntity(resultType), isCollection, isOptional);
+            } else if (TypeUtils.isSimpleType(resultType)) {
+                return (T) handleScalarResult(query, resultType, isCollection, isOptional);
             } else {
                 return (T) handleDtoResult(query, resultType, isCollection, isOptional, isInterface);
             }
@@ -69,6 +76,14 @@ public class QueryByIdExecutor {
         NativeQuery<Object> nativeQuery = unwrapTypedNativeQuery(query);
         nativeQuery.setTupleTransformer(new UniversalResultTransformer<>(dtoClass, isInterface));
         List<Object> resultList = nativeQuery.getResultList();
+        if (isCollection) return resultList;
+        Object single = resultList.isEmpty() ? null : resultList.getFirst();
+        return isOptional ? Optional.ofNullable(single) : single;
+    }
+    private Object handleScalarResult(Query query, Class<?> resultType, boolean isCollection, boolean isOptional) {
+        List<?> resultList = query.getResultList().stream()
+                .map(value -> ConverterUtils.convertValue(value, resultType))
+                .toList();
         if (isCollection) return resultList;
         Object single = resultList.isEmpty() ? null : resultList.getFirst();
         return isOptional ? Optional.ofNullable(single) : single;

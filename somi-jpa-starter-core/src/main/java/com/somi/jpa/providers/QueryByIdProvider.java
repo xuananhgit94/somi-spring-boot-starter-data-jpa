@@ -4,8 +4,8 @@ import com.somi.jpa.constants.AppConstants;
 import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.StringUtils;
@@ -19,11 +19,14 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-@RequiredArgsConstructor
-@Slf4j
 public class QueryByIdProvider {
+    private static final Logger log = LoggerFactory.getLogger(QueryByIdProvider.class);
     private Map<String, String> queryMap;
     private final String[] classpathPaths;
+
+    public QueryByIdProvider(String[] classpathPaths) {
+        this.classpathPaths = classpathPaths;
+    }
     @PostConstruct
     public void loadQueries() {
         Map<String, String> tmpQueryMap = new HashMap<>();

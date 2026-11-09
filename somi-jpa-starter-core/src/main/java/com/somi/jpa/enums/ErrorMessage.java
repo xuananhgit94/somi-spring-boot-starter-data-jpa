@@ -1,8 +1,5 @@
 package com.somi.jpa.enums;
 
-import lombok.Getter;
-
-@Getter
 public enum ErrorMessage {
     LOAD_QUERY_ERROR("error.load.query", "No result for native query %s"),
     DUPLICATE_QUERY_ID("error.query.duplicate", "Query Id %s duplicated at file %s"),
@@ -30,6 +27,14 @@ public enum ErrorMessage {
     ErrorMessage(String code, String defaultTemplate) {
         this.code = code;
         this.defaultTemplate = defaultTemplate;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getDefaultTemplate() {
+        return defaultTemplate;
     }
 
     public String format(Object... args) {

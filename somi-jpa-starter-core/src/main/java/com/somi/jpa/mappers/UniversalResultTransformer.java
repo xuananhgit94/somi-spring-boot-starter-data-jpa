@@ -14,7 +14,7 @@ public record UniversalResultTransformer<T>(Class<T> targetClass,
     }
 
     @Override
-    public T transformTuple(@Nullable Object[] tuple, String[] aliases) {
+    public T transformTuple(@Nullable Object[] tuple, @Nullable String[] aliases) {
         try {
             return strategy.map(tuple, aliases);
         } catch (NativeQueryException e) {

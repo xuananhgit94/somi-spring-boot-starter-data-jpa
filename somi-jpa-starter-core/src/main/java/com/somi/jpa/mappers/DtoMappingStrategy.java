@@ -36,11 +36,12 @@ public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
     }
 
     @Override
-    public T map(@Nullable Object[] tuple, String[] aliases) throws ReflectiveOperationException {
+    public T map(@Nullable Object[] tuple, @Nullable String[] aliases) throws ReflectiveOperationException {
         T instance = constructor.newInstance();
         for (int i = 0; i < aliases.length; i++) {
-            if (aliases[i] == null) continue;
-            PropertyWriter writer = writers.get(ObjectMappingStrategy.propertyKey(aliases[i]));
+            String alias = aliases[i];
+            if (alias == null) continue;
+            PropertyWriter writer = writers.get(ObjectMappingStrategy.propertyKey(alias));
             if (writer != null) {
                 writer.setter().invoke(instance, conversionService.convert(tuple[i], writer.type()));
             }

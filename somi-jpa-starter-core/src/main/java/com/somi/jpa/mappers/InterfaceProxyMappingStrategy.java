@@ -19,7 +19,7 @@ public final class InterfaceProxyMappingStrategy<T> implements ObjectMappingStra
     }
 
     @Override
-    public T map(@Nullable Object[] tuple, String[] aliases) {
+    public T map(@Nullable Object[] tuple, @Nullable String[] aliases) {
         Map<String, @Nullable Object> row = ObjectMappingStrategy.toRowMap(tuple, aliases);
         return targetClass.cast(Proxy.newProxyInstance(
                 targetClass.getClassLoader(),

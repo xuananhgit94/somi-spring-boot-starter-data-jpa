@@ -62,6 +62,10 @@ public class QueryByIdProvider {
         return sql;
     }
 
+    public static String key(String namespace, String id) {
+        return namespace + "." + id;
+    }
+
     private static void loadFile(Resource resource, DocumentBuilder builder, Map<String, String> queries) {
         String fileName = resource.getDescription();
         log.debug("Processing query file {}", fileName);
@@ -71,6 +75,7 @@ public class QueryByIdProvider {
         } catch (IOException | SAXException e) {
             throw NativeQueryException.wrap(e, ErrorMessage.FAIL_PARSE_QUERY, fileName);
         }
+        String namespace = resolveNamespace(document.getDocumentElement(), resource);
         NodeList queryNodes = document.getElementsByTagName(AppConstants.TAG_QUERY);
         for (int i = 0; i < queryNodes.getLength(); i++) {
             Element element = (Element) queryNodes.item(i);
@@ -80,11 +85,24 @@ public class QueryByIdProvider {
                 log.warn("Skipping <query> without id or SQL in file {}", fileName);
                 continue;
             }
-            if (queries.putIfAbsent(id, sql) != null) {
-                throw NativeQueryException.of(ErrorMessage.DUPLICATE_QUERY_ID, id, fileName);
+            String key = key(namespace, id);
+            if (queries.putIfAbsent(key, sql) != null) {
+                throw NativeQueryException.of(ErrorMessage.DUPLICATE_QUERY_ID, key, fileName);
             }
-            log.debug("Loaded query [{}] from {}", id, fileName);
+            log.debug("Loaded query [{}] from {}", key, fileName);
         }
+    }
+
+    private static String resolveNamespace(Element root, Resource resource) {
+        String declared = root.getAttribute(AppConstants.ATTRIBUTE_NAMESPACE).trim();
+        if (StringUtils.hasText(declared)) {
+            return declared;
+        }
+        String fileName = resource.getFilename();
+        if (!StringUtils.hasText(fileName)) {
+            throw NativeQueryException.of(ErrorMessage.MISSING_NAMESPACE, resource.getDescription());
+        }
+        return StringUtils.stripFilenameExtension(fileName);
     }
 
     private static DocumentBuilder newDocumentBuilder() {

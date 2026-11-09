@@ -73,29 +73,39 @@ public class Application {
 @EnableNativeQueries(basePackages = {"com.example.orders", "com.example.billing"})
 ```
 
-**Bước 2:** viết query trong `src/main/resources/queries/person.xml`.
+**Bước 2:** viết query trong `src/main/resources/queries/user.xml`.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <queries>
-    <query id="person.findActive"><![CDATA[
+    <query id="FIND_BY_ID"><![CDATA[
         SELECT id, full_name, created_at
-        FROM person
+        FROM users
+        WHERE id = ?1
+    ]]></query>
+
+    <query id="FIND_ACTIVE"><![CDATA[
+        SELECT id, full_name, created_at
+        FROM users
         WHERE status = ?1
         ORDER BY id
     ]]></query>
 </queries>
 ```
 
-**Bước 3:** khai báo interface.
+**Bước 3:** khai báo interface, gắn `@QueryNamespace` bằng tên file (`user.xml` → `"user"`).
 
 ```java
-public interface PersonQueries {
+@QueryNamespace("user")
+public interface UserQueries {
 
-    record PersonRow(Long id, String fullName, LocalDateTime createdAt) {}
+    record UserRow(Long id, String fullName, LocalDateTime createdAt) {}
 
-    @QueryId("person.findActive")
-    List<PersonRow> findActive(String status);
+    @QueryId("FIND_BY_ID")
+    Optional<UserRow> findById(Long id);
+
+    @QueryId("FIND_ACTIVE")
+    List<UserRow> findActive(String status);
 }
 ```
 
@@ -103,15 +113,15 @@ public interface PersonQueries {
 
 ```java
 @Service
-public class PersonService {
-    private final PersonQueries personQueries;
+public class UserService {
+    private final UserQueries userQueries;
 
-    public PersonService(PersonQueries personQueries) {
-        this.personQueries = personQueries;
+    public UserService(UserQueries userQueries) {
+        this.userQueries = userQueries;
     }
 
-    public List<PersonQueries.PersonRow> activePeople() {
-        return personQueries.findActive("ACTIVE");
+    public List<UserQueries.UserRow> activeUsers() {
+        return userQueries.findActive("ACTIVE");
     }
 }
 ```
@@ -120,35 +130,82 @@ public class PersonService {
 
 - Mặc định thư viện đọc mọi file khớp `classpath*:/queries/**/*.xml`, kể cả file nằm trong các jar khác.
 - Mỗi `<query>` cần thuộc tính `id` và nội dung SQL. Nên bọc SQL trong `<![CDATA[ ... ]]>` để dùng được `<`, `>`, `&`.
-- `id` phải **duy nhất trên toàn bộ classpath**. Trùng `id` sẽ làm ứng dụng không khởi động được.
-  Nên đặt tiền tố theo nghiệp vụ: `orders.findById`, `billing.sumByMonth`.
 - `<query>` thiếu `id` hoặc thiếu SQL sẽ bị bỏ qua kèm cảnh báo trong log.
 - File có `<!DOCTYPE ...>` bị từ chối để chống tấn công XXE. Không khai báo DOCTYPE trong file query.
+
+### Namespace và tính duy nhất của `id`
+
+Mỗi file XML là một **namespace**. Mặc định namespace là tên file bỏ phần đuôi:
+
+| File                          | Namespace  |
+|-------------------------------|------------|
+| `queries/user.xml`            | `user`     |
+| `queries/orders/order.xml`    | `order`    |
+| `queries/report/revenue.xml`  | `revenue`  |
+
+`id` chỉ cần **duy nhất trong một file** (chính xác hơn: trong một namespace). Hai file khác nhau được
+dùng cùng tên `id`:
+
+```xml
+<!-- queries/user.xml -->
+<queries>
+    <query id="FIND_BY_ID">SELECT id, full_name FROM users WHERE id = ?1</query>
+</queries>
+```
+
+```xml
+<!-- queries/order.xml -->
+<queries>
+    <query id="FIND_BY_ID">SELECT id, total FROM orders WHERE id = ?1</query>
+</queries>
+```
+
+Bên trong thư viện, mỗi query được định danh bằng `namespace.id`: `user.FIND_BY_ID` và `order.FIND_BY_ID`.
+
+Đặt namespace khác tên file bằng thuộc tính `namespace`, ví dụ khi hai thư mục có file cùng tên:
+
+```xml
+<!-- queries/admin/user.xml -->
+<queries namespace="admin-user">
+    <query id="FIND_BY_ID">...</query>
+</queries>
+```
+
+Ứng dụng **không khởi động được** nếu:
+
+- một file khai báo cùng `id` hai lần;
+- hai file có cùng namespace (cùng tên file, hoặc cùng giá trị `namespace`) cùng khai báo một `id`.
+
+`id` phân biệt hoa thường (`FIND_BY_ID` khác `find_by_id`). Nên thống nhất một kiểu đặt tên, ví dụ
+chữ hoa và gạch dưới: `FIND_BY_ID`, `FIND_ACTIVE`, `COUNT_BY_STATUS`, `UPDATE_STATUS`.
 
 Có thể chia query ra nhiều file và nhiều thư mục con:
 
 ```
 src/main/resources/queries/
-├── person.xml
-├── orders/
-│   ├── order.xml
-│   └── order-report.xml
-└── billing.xml
+├── user.xml           → namespace "user"
+├── order.xml          → namespace "order"
+└── report/
+    └── revenue.xml    → namespace "revenue"
 ```
 
 ## 5. Khai báo repository
 
 Một interface được coi là repository khi nó có ít nhất một method gắn `@QueryId` và nằm trong package được quét.
-Thư viện tạo bean với tên là tên interface viết thường chữ đầu (`PersonQueries` → `personQueries`).
+Thư viện tạo bean với tên là tên interface viết thường chữ đầu (`OrderQueries` → `orderQueries`).
 
 ```java
+@QueryNamespace("order")
 public interface OrderQueries {
 
-    @QueryId("orders.findById")
+    @QueryId("FIND_BY_ID")
     Optional<OrderRow> findById(Long id);
 
-    @QueryId(value = "orders.cancel", type = QueryType.MODIFIER)
+    @QueryId(value = "CANCEL", type = QueryType.MODIFIER)
     int cancel(Long id);
+
+    @QueryId(value = "FIND_BY_ID", namespace = "user")
+    Optional<UserRow> findCustomer(Long userId);
 
     default boolean exists(Long id) {
         return findById(id).isPresent();
@@ -156,27 +213,48 @@ public interface OrderQueries {
 }
 ```
 
+**Cách xác định query của một method**, theo thứ tự ưu tiên:
+
+| Khai báo                                              | Query được dùng      |
+|-------------------------------------------------------|----------------------|
+| `@QueryId(value = "FIND_BY_ID", namespace = "user")`  | `user.FIND_BY_ID`    |
+| `@QueryNamespace("order")` trên interface + `@QueryId("FIND_BY_ID")` | `order.FIND_BY_ID` |
+| Không có namespace nào: `@QueryId("order.FIND_BY_ID")` | `order.FIND_BY_ID` (ghi đầy đủ) |
+
+`@QueryNamespace` đặt trên interface cha cũng được áp dụng cho interface con.
+
 Các thuộc tính của `@QueryId`:
 
 | Thuộc tính            | Mặc định        | Ý nghĩa                                                                  |
 |-----------------------|-----------------|--------------------------------------------------------------------------|
 | `value`               | bắt buộc        | `id` của query trong file XML                                            |
+| `namespace`           | `""`            | Namespace riêng cho method này, ghi đè `@QueryNamespace` của interface   |
 | `type`                | `AUTO`          | `SELECT`, `MODIFIER` hoặc `AUTO` (method trả về `void` được coi là `MODIFIER`) |
 | `flushAutomatically`  | `false`         | Chỉ cho `MODIFIER`: flush persistence context trước khi chạy             |
 | `clearAutomatically`  | `false`         | Chỉ cho `MODIFIER`: clear persistence context sau khi chạy               |
 
+Nhiều method có thể dùng chung một query, ví dụ để nhận kết quả ở các dạng khác nhau:
+
+```java
+@QueryId("FIND_ACTIVE")
+List<UserRow> findActive(String status);
+
+@QueryId("FIND_ACTIVE")
+List<User> findActiveEntities(String status);
+```
+
 Các quy tắc khác:
 
 - Method `default` chạy đúng phần thân của nó, không gọi query.
-- Có thể kế thừa từ interface cha generic, ví dụ `interface PersonQueries extends BaseQueries<PersonRow>`.
+- Có thể kế thừa từ interface cha generic, ví dụ `interface UserQueries extends BaseQueries<UserRow>`.
   Interface generic (có tham số kiểu) không tự trở thành bean.
 - Method không có `@QueryId` (ví dụ kế thừa từ interface khác) không làm ứng dụng lỗi khi khởi động,
   nhưng sẽ ném `NativeQueryException` nếu bị gọi.
 - Nếu đã có bean khác trùng tên với repository, ứng dụng không khởi động được. Đổi tên interface để tránh trùng.
 
 **Kiểm tra lúc khởi động.** Khi ứng dụng khởi động, mọi method `@QueryId` đều được kiểm tra:
-`id` phải có trong file XML, kiểu trả về phải xác định được, và method `MODIFIER` phải trả về
-`void`, `int` hoặc `long`. Lỗi sai chính tả `id` vì vậy được phát hiện ngay chứ không đợi tới lúc chạy.
+query `namespace.id` phải tồn tại, kiểu trả về phải xác định được, và method `MODIFIER` phải trả về
+`void`, `int` hoặc `long`. Lỗi sai chính tả `id` hoặc namespace vì vậy được phát hiện ngay chứ không đợi tới lúc chạy.
 
 ## 6. Kiểu trả về
 
@@ -250,15 +328,19 @@ Thời gian không có múi giờ được hiểu theo múi giờ của JVM.
 Tham số được truyền theo **vị trí**, khớp với `?1`, `?2`... trong SQL theo thứ tự tham số của method:
 
 ```xml
-<query id="orders.search"><![CDATA[
+<!-- queries/order.xml -->
+<query id="SEARCH"><![CDATA[
     SELECT id, total FROM orders
     WHERE customer_id = ?1 AND created_at >= ?2 AND status IN (?3)
 ]]></query>
 ```
 
 ```java
-@QueryId("orders.search")
-List<OrderRow> search(Long customerId, LocalDateTime from, List<String> statuses);
+@QueryNamespace("order")
+public interface OrderQueries {
+    @QueryId("SEARCH")
+    List<OrderRow> search(Long customerId, LocalDateTime from, List<String> statuses);
+}
 ```
 
 - Một tham số có thể dùng nhiều lần trong SQL (`?1 ... ?1`).
@@ -300,7 +382,7 @@ hãy gọi repository từ service có `@Transactional` chỉ rõ transaction ma
 entity đã được nạp trong cùng transaction. Dùng hai cờ sau khi cần:
 
 ```java
-@QueryId(value = "person.rename", type = QueryType.MODIFIER,
+@QueryId(value = "RENAME", type = QueryType.MODIFIER,
          flushAutomatically = true, clearAutomatically = true)
 int rename(Long id, String fullName);
 ```
@@ -397,7 +479,7 @@ Khuyến nghị cho production:
 
 - Đặt `somi.jpa.query-timeout` để một query chậm không giữ kết nối mãi mãi.
 - Đặt `somi.jpa.max-rows` để tránh vô tình nạp hàng triệu dòng vào bộ nhớ.
-- Đặt tiền tố cho `id` query để tránh trùng với query trong các jar khác.
+- Đặt tên file (namespace) theo nghiệp vụ, tránh tên chung chung như `common.xml` dễ trùng với file trong các jar khác.
 
 ## 13. Viết test
 
@@ -423,12 +505,17 @@ phụ thuộc vào cú pháp và kiểu dữ liệu của từng database.
 
 ## 14. Câu hỏi thường gặp
 
-**Ứng dụng báo `Query id ... used by ... not found` khi khởi động.**
-`id` trong `@QueryId` không có trong file XML nào được nạp. Kiểm tra chính tả, vị trí file và
-`somi.jpa.query-locations` (khai báo thuộc tính này sẽ thay thế vị trí mặc định).
+**Ứng dụng báo `Query id user.FIND_BY_ID used by ... not found` khi khởi động.**
+Không có query `FIND_BY_ID` trong namespace `user`. Kiểm tra chính tả `id`, giá trị `@QueryNamespace`
+có khớp tên file (hoặc thuộc tính `namespace` của file) không, vị trí file và `somi.jpa.query-locations`
+(khai báo thuộc tính này sẽ thay thế vị trí mặc định).
 
-**Ứng dụng báo `Query id ... duplicated in file ...`.**
-Hai file XML trên classpath có cùng `id`. Đổi `id` hoặc thêm tiền tố.
+**Ứng dụng báo `Query id user.FIND_BY_ID duplicated in file ...`.**
+Cùng một file khai báo `id` hai lần, hoặc hai file có cùng namespace (cùng tên file ở hai thư mục / hai jar,
+hoặc cùng giá trị `namespace`). Đổi `id`, hoặc đặt `namespace` khác cho một trong hai file.
+
+**Ứng dụng báo `Cannot derive a namespace for query file ...`.**
+Không lấy được tên file của resource. Khai báo `<queries namespace="...">` trong file đó.
 
 **Thuộc tính trong DTO luôn `null`.**
 Kiểm tra tên cột (dùng alias), DTO có setter public và constructor không tham số.
@@ -445,6 +532,3 @@ Thêm `clearAutomatically = true` vào `@QueryId` của câu `UPDATE`.
 
 **Tham số enum không khớp dữ liệu.**
 Enum được truyền theo `name()`. Nếu database lưu dạng số, hãy truyền `status.ordinal()` với tham số kiểu `int`.
-
-**Chuyển từ koach-spring-boot-starter-data-jpa.**
-Xem bảng chuyển đổi trong [README](../README.md#migrating-from-koach-spring-boot-starter-data-jpa).

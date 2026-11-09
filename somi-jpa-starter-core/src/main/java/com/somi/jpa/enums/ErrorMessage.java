@@ -5,6 +5,7 @@ import java.text.MessageFormat;
 public enum ErrorMessage {
     LOAD_QUERY_ERROR("somi.jpa.error.query.load", "Failed to load query files from {0}"),
     DUPLICATE_QUERY_ID("somi.jpa.error.query.duplicate", "Query id {0} duplicated in file {1}"),
+    MISSING_NAMESPACE("somi.jpa.error.query.namespace", "Cannot derive a namespace for query file {0}; declare <queries namespace=\"...\">"),
     FAIL_PARSE_QUERY("somi.jpa.error.query.parse", "Failed to parse query file {0}"),
     QUERY_ID_NOT_FOUND("somi.jpa.error.query.not-found", "Query id {0} not found"),
     QUERY_ID_NOT_FOUND_FOR_METHOD("somi.jpa.error.query.not-found-for-method", "Query id {0} used by {1} not found"),

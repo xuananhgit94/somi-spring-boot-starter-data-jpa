@@ -1,6 +1,7 @@
 package com.somi.jpa.it;
 
 import com.somi.jpa.annotations.QueryId;
+import com.somi.jpa.annotations.QueryNamespace;
 import com.somi.jpa.enums.QueryType;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
+@QueryNamespace("person")
 public interface PersonQueries extends BaseQueries<PersonQueries.PersonRecord> {
 
     enum Status { ACTIVE, INACTIVE }
@@ -42,67 +44,67 @@ public interface PersonQueries extends BaseQueries<PersonQueries.PersonRecord> {
         public void setSalary(BigDecimal salary) { this.salary = salary; }
     }
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     List<PersonRecord> findAllRecords();
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     List<PersonDto> findAllDtos();
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     List<PersonView> findAllViews();
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     PersonRecord findAnyOne();
 
-    @QueryId("person.findById")
+    @QueryId("FIND_BY_ID")
     Optional<PersonRecord> findById(Long id);
 
-    @QueryId("person.findById")
+    @QueryId("FIND_BY_ID")
     PersonDto findDtoById(Long id);
 
-    @QueryId("person.findById")
+    @QueryId("FIND_BY_ID")
     Optional<Person> findEntityById(Long id);
 
-    @QueryId("person.findAll")
+    @QueryId("FIND_ALL")
     List<Person> findAllEntities();
 
-    @QueryId("person.findByStatus")
+    @QueryId("FIND_BY_STATUS")
     List<PersonRecord> findByStatus(Status status);
 
-    @QueryId("person.findBornBefore")
+    @QueryId("FIND_BORN_BEFORE")
     List<Long> findBornBefore(java.sql.Date date);
 
-    @QueryId("person.findIds")
+    @QueryId("FIND_IDS")
     Set<Long> findAllIds();
 
-    @QueryId("person.findIds")
+    @QueryId("FIND_IDS")
     TreeSet<Long> findIdsSorted();
 
-    @QueryId("person.findIds")
+    @QueryId("FIND_IDS")
     ArrayList<Long> findIdsList();
 
     default Optional<String> findName(Long id) {
         return findById(id).map(PersonRecord::fullName);
     }
 
-    @QueryId("person.countActive")
+    @QueryId("COUNT_ACTIVE")
     Long countActive();
 
-    @QueryId(value = "person.deactivate", type = QueryType.MODIFIER)
+    @QueryId(value = "DEACTIVATE", type = QueryType.MODIFIER)
     int deactivate(Long id);
 
-    @QueryId("person.deactivate")
+    @QueryId("DEACTIVATE")
     void deactivateVoid(Long id);
 
-    @QueryId(value = "person.rename", type = QueryType.MODIFIER)
+    @QueryId(value = "RENAME", type = QueryType.MODIFIER)
     int rename(Long id, String fullName);
 
-    @QueryId(value = "person.rename", type = QueryType.MODIFIER, clearAutomatically = true)
+    @QueryId(value = "RENAME", type = QueryType.MODIFIER, clearAutomatically = true)
     int renameAndClear(Long id, String fullName);
 
-    @QueryId(value = "person.insert", type = QueryType.MODIFIER)
+    @QueryId(value = "INSERT", type = QueryType.MODIFIER)
     int insert(Long id, String fullName);
 
-    @QueryId(value = "person.delete", type = QueryType.MODIFIER)
+    @QueryId(value = "DELETE", type = QueryType.MODIFIER)
     int delete(Long id);
 }

@@ -17,7 +17,7 @@ class QueryLocationsPropertyTest {
 
     @Test
     void queryLocationsPropertyReplacesTheDefault() {
-        assertThat(queryByIdProvider.contains("alt.marker")).isTrue();
+        assertThat(queryByIdProvider.contains("alt.MARKER")).isTrue();
     }
 
     @Test

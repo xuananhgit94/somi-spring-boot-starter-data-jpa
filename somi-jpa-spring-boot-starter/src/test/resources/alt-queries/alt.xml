@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <queries>
-    <query id="alt.marker">SELECT 1</query>
+    <query id="MARKER">SELECT 1</query>
 </queries>

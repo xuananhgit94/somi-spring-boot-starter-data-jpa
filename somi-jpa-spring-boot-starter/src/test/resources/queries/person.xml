@@ -1,49 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <queries>
-    <query id="person.findAll"><![CDATA[
+    <query id="FIND_ALL"><![CDATA[
         SELECT id, full_name, status, salary, active, birth_date, created_at
         FROM person
         ORDER BY id
     ]]></query>
 
-    <query id="person.findById"><![CDATA[
+    <query id="FIND_BY_ID"><![CDATA[
         SELECT id, full_name, status, salary, active, birth_date, created_at
         FROM person
         WHERE id = ?1
     ]]></query>
 
-    <query id="person.findByStatus"><![CDATA[
+    <query id="FIND_BY_STATUS"><![CDATA[
         SELECT id, full_name, status, salary, active, birth_date, created_at
         FROM person
         WHERE ?1 IS NULL OR UPPER(status) = ?1
         ORDER BY id
     ]]></query>
 
-    <query id="person.findBornBefore"><![CDATA[
+    <query id="FIND_BORN_BEFORE"><![CDATA[
         SELECT id FROM person WHERE birth_date < ?1 ORDER BY id
     ]]></query>
 
-    <query id="person.findIds"><![CDATA[
+    <query id="FIND_IDS"><![CDATA[
         SELECT id FROM person ORDER BY id
     ]]></query>
 
-    <query id="person.countActive"><![CDATA[
+    <query id="COUNT_ACTIVE"><![CDATA[
         SELECT COUNT(*) FROM person WHERE active = TRUE
     ]]></query>
 
-    <query id="person.deactivate"><![CDATA[
+    <query id="DEACTIVATE"><![CDATA[
         UPDATE person SET active = FALSE, status = 'inactive' WHERE id = ?1
     ]]></query>
 
-    <query id="person.rename"><![CDATA[
+    <query id="RENAME"><![CDATA[
         UPDATE person SET full_name = ?2 WHERE id = ?1
     ]]></query>
 
-    <query id="person.insert"><![CDATA[
+    <query id="INSERT"><![CDATA[
         INSERT INTO person (id, full_name, status, salary, active) VALUES (?1, ?2, 'active', 0, TRUE)
     ]]></query>
 
-    <query id="person.delete"><![CDATA[
+    <query id="DELETE"><![CDATA[
         DELETE FROM person WHERE id = ?1
     ]]></query>
 </queries>

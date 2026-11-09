@@ -10,6 +10,8 @@ import java.lang.annotation.*;
 public @interface QueryId {
     String value();
 
+    String namespace() default "";
+
     QueryType type() default QueryType.AUTO;
 
     boolean flushAutomatically() default false;

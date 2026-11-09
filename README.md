@@ -97,20 +97,3 @@ Every failure is a `com.somi.jpa.exceptions.NativeQueryException`. Its message i
 contains row values. It implements `MessageSourceResolvable`, so to localize it add its code
 (`exception.getError().getCode()`, e.g. `somi.jpa.error.query.not-found`) to your `messages.properties`
 and call `messageSource.getMessage(exception, locale)`.
-
-## Migrating from koach-spring-boot-starter-data-jpa
-
-| Before                                         | After                                              |
-|------------------------------------------------|----------------------------------------------------|
-| `com.koach:koach-spring-boot-starter-data-jpa` | `com.somi:somi-spring-boot-starter-data-jpa`       |
-| package `com.koach.jpa.*`                      | `com.somi.jpa.*`                                   |
-| `com.koach.jpa.anotations`                     | `com.somi.jpa.annotations`                         |
-| `com.koach.jpa.configs.NativeQueryException`   | `com.somi.jpa.exceptions.NativeQueryException`     |
-| property `queries.path-queries`                | `somi.jpa.query-locations`                         |
-| default `classpath:/queries/**/*.xml`          | `classpath*:/queries/**/*.xml` (scans all jars)    |
-| `MessageResolver` / `DefaultNativeQueryException` | removed, see [Errors](#errors)                  |
-| message keys `error.*`                         | `somi.jpa.error.*`, `{0}`-style placeholders       |
-| Java 21, Spring Boot 3.5, Jackson 2            | Java 25, Spring Boot 4.1, Jackson 3                |
-| XML files with `<!DOCTYPE ...>`                | rejected (XXE protection); remove the DOCTYPE      |
-| single-value method silently took the first row | `IncorrectResultSizeDataAccessException`          |
-| enum parameters bound by Hibernate defaults    | bound by `name()`                                  |

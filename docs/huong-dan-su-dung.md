@@ -445,6 +445,3 @@ Thêm `clearAutomatically = true` vào `@QueryId` của câu `UPDATE`.
 
 **Tham số enum không khớp dữ liệu.**
 Enum được truyền theo `name()`. Nếu database lưu dạng số, hãy truyền `status.ordinal()` với tham số kiểu `int`.
-
-**Chuyển từ koach-spring-boot-starter-data-jpa.**
-Xem bảng chuyển đổi trong [README](../README.md#migrating-from-koach-spring-boot-starter-data-jpa).

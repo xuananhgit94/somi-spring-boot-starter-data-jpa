@@ -7,10 +7,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Maps one result row to an instance of a fixed target type. Implementations resolve reflection
- * metadata once, at construction, and are reused for every row of a query.
- */
 public sealed interface ObjectMappingStrategy<T>
         permits DtoMappingStrategy, RecordMappingStrategy, InterfaceProxyMappingStrategy {
 
@@ -22,9 +18,6 @@ public sealed interface ObjectMappingStrategy<T>
         return new DtoMappingStrategy<>(targetClass, conversionService);
     }
 
-    /**
-     * Indexes a row by lower-cased column alias.
-     */
     static Map<String, @Nullable Object> toRowMap(@Nullable Object[] tuple, String[] aliases) {
         Map<String, @Nullable Object> row = HashMap.newHashMap(aliases.length);
         for (int i = 0; i < aliases.length; i++) {

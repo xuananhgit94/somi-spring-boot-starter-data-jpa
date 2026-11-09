@@ -12,16 +12,11 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Maps rows onto a mutable class through its public setters. Column {@code full_name} or
- * {@code fullName} is written with {@code setFullName(..)}.
- */
 public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
     private record PropertyWriter(Method setter, Type type) {}
 
     private final ValueConversionService conversionService;
     private final Constructor<T> constructor;
-    // Keyed by propertyKey(..), so lookups ignore case and underscores
     private final Map<String, PropertyWriter> writers = new HashMap<>();
 
     DtoMappingStrategy(Class<T> targetClass, ValueConversionService conversionService) {
@@ -57,7 +52,6 @@ public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
         return instance;
     }
 
-    /** {@code FULL_NAME}, {@code full_name} and {@code fullName} all become {@code fullname}. */
     private static String propertyKey(String name) {
         return name.replace("_", "").toLowerCase(Locale.ROOT);
     }

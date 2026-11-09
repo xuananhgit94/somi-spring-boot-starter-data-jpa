@@ -4,10 +4,6 @@ import com.somi.jpa.executors.QueryByIdExecutor;
 import com.somi.jpa.handler.NativeQueryRepositoryHandler;
 import org.springframework.beans.factory.FactoryBean;
 
-/**
- * Creates the proxy for one repository interface. Registered by
- * {@link com.somi.jpa.registers.NativeQueryRepositoryRegistrar} with constructor autowiring.
- */
 public class NativeQueryRepositoryFactoryBean<T> implements FactoryBean<T> {
     private final Class<T> repositoryInterface;
     private final T repository;

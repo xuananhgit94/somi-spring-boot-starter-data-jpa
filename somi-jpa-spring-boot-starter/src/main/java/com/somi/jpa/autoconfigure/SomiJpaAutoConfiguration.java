@@ -30,10 +30,6 @@ public class SomiJpaAutoConfiguration {
         return new QueryByIdProvider(properties.queryLocations(), ResourcePatternUtils.getResourcePatternResolver(resourceLoader));
     }
 
-    /**
-     * Uses the application's {@link JsonMapper} when Spring Boot's Jackson support is present, so
-     * {@code spring.jackson.*} settings also apply to JSON columns.
-     */
     @Bean
     @ConditionalOnMissingBean
     public ValueConversionService somiValueConversionService(ObjectProvider<JsonMapper> jsonMapper) {

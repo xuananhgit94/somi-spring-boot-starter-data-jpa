@@ -14,16 +14,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Converts raw JDBC values into the Java types declared by DTOs, records and projections.
- */
 public class ValueConversionService {
     private final ObjectMapper objectMapper;
     private final List<ValueConverter> converters;
 
     public ValueConversionService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        // Order matters: type-specific converters first; JsonConverter only claims non-simple targets
         this.converters = List.of(
                 new NumberConverter(),
                 new EnumConverter(),
@@ -37,9 +33,6 @@ public class ValueConversionService {
         );
     }
 
-    /**
-     * Creates a service backed by a default {@link JsonMapper}, for use outside a Spring context.
-     */
     public static ValueConversionService withDefaults() {
         return new ValueConversionService(JsonMapper.builder().build());
     }

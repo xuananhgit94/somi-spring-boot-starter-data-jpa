@@ -13,12 +13,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 
-/**
- * Converts JDBC and string values to {@code java.time} types. Legacy {@code java.util.Date} targets are not
- * produced here: a {@code Timestamp} is already a {@code Date}, other values go through Jackson.
- */
-// java.sql.Timestamp/Date/Time are what JDBC drivers return; they are only read here and converted to java.time
-@SuppressWarnings("java:S2143")
 public class DateTimeConverter implements ValueConverter {
     @Override
     public boolean supports(Object raw, Type targetType) {
@@ -62,7 +56,6 @@ public class DateTimeConverter implements ValueConverter {
     private Instant toInstant(Object raw) {
         return switch (raw) {
             case java.sql.Timestamp ts -> ts.toInstant();
-            // java.sql.Date.toInstant() throws UnsupportedOperationException
             case java.sql.Date d -> d.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
             case Instant i -> i;
             case OffsetDateTime odt -> odt.toInstant();
@@ -75,7 +68,6 @@ public class DateTimeConverter implements ValueConverter {
         };
     }
 
-    // DB drivers often render timestamps as "yyyy-MM-dd HH:mm:ss" instead of the ISO "T" separator
     private LocalDateTime parseLocalDateTime(String s) {
         if (s.length() == 10) return LocalDate.parse(s).atStartOfDay();
         return LocalDateTime.parse(s.replace(' ', 'T'));

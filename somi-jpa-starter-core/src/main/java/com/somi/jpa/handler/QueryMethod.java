@@ -10,14 +10,6 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Metadata of one {@link QueryId} repository method, resolved and validated once at startup.
- *
- * @param queryId       id of the query in the XML files
- * @param modifying     whether the query is executed with {@code executeUpdate}
- * @param containerType declared return type, e.g. {@code List}, {@code Optional} or the element type itself
- * @param resultType    element type, e.g. {@code PersonDto} for {@code List<PersonDto>}
- */
 public record QueryMethod(String queryId, boolean modifying, Class<?> containerType, Class<?> resultType) {
 
     private static final Set<Class<?>> MODIFYING_RETURN_TYPES =

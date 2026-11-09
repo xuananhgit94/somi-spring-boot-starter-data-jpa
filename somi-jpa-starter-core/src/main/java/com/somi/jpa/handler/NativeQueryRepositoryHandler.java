@@ -10,10 +10,6 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Backs a repository interface: every abstract method runs the native query named by its {@code @QueryId},
- * default methods run their own body.
- */
 public final class NativeQueryRepositoryHandler implements InvocationHandler {
     private final Class<?> repositoryInterface;
     private final QueryByIdExecutor queryByIdExecutor;
@@ -22,7 +18,6 @@ public final class NativeQueryRepositoryHandler implements InvocationHandler {
     public NativeQueryRepositoryHandler(Class<?> repositoryInterface, QueryByIdExecutor queryByIdExecutor) {
         this.repositoryInterface = repositoryInterface;
         this.queryByIdExecutor = queryByIdExecutor;
-        // Validate every method up front so a broken repository fails at startup, not on first call
         for (Method method : repositoryInterface.getMethods()) {
             if (!method.isDefault() && !Modifier.isStatic(method.getModifiers())) {
                 queryMethods.put(method, QueryMethod.from(method));

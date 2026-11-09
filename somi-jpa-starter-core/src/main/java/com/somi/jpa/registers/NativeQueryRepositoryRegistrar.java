@@ -28,14 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Registers a {@link NativeQueryRepositoryFactoryBean} for every interface with {@code @QueryId} methods
- * found under the packages of {@link EnableNativeQueries}.
- * <p>
- * Kept on {@link ImportBeanDefinitionRegistrar} rather than Spring 7's {@code BeanRegistrar} because it
- * needs the metadata of the importing {@code @EnableNativeQueries} class.
- */
-@SuppressWarnings("NullAway.Init") // fields are set through the Aware callbacks before registration
+@SuppressWarnings("NullAway.Init")
 public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
     private ResourceLoader resourceLoader;
     private Environment environment;
@@ -74,10 +67,8 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
         AbstractBeanDefinition definition = BeanDefinitionBuilder
                 .genericBeanDefinition(NativeQueryRepositoryFactoryBean.class)
                 .addConstructorArgValue(repositoryInterface)
-                // Remaining constructor argument (QueryByIdExecutor) is autowired by type
                 .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_CONSTRUCTOR)
                 .getBeanDefinition();
-        // Lets the container match the repository type without instantiating the factory early
         definition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, repositoryInterface);
         registry.registerBeanDefinition(beanName, definition);
     }

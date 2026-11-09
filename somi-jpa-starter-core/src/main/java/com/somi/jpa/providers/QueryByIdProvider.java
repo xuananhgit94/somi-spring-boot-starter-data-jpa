@@ -24,9 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Loads {@code <query id="...">} definitions from XML resources once, at construction. Immutable afterwards.
- */
 public class QueryByIdProvider {
     private static final Logger log = LoggerFactory.getLogger(QueryByIdProvider.class);
 
@@ -62,7 +59,6 @@ public class QueryByIdProvider {
     }
 
     private static void loadFile(Resource resource, DocumentBuilder builder, Map<String, String> queries) {
-        // getFilename() is null for some resource types; the description always identifies the file
         String fileName = resource.getDescription();
         log.debug("Processing query file {}", fileName);
         Document document;
@@ -90,7 +86,6 @@ public class QueryByIdProvider {
     private static DocumentBuilder newDocumentBuilder() {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultNSInstance();
-            // Query files never need DTDs or external entities; disabling them prevents XXE
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             factory.setXIncludeAware(false);

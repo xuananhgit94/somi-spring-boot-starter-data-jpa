@@ -8,14 +8,9 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Maps rows onto a JDK proxy of a projection interface, Spring Data style:
- * {@code getFullName()} reads column {@code fullname} or {@code full_name}.
- */
 public final class InterfaceProxyMappingStrategy<T> implements ObjectMappingStrategy<T> {
     private final Class<T> targetClass;
     private final ValueConversionService conversionService;
-    // Shared by all proxies of this query so property names are derived once per method
     private final Map<Method, String> propertyNames = new ConcurrentHashMap<>();
 
     InterfaceProxyMappingStrategy(Class<T> targetClass, ValueConversionService conversionService) {

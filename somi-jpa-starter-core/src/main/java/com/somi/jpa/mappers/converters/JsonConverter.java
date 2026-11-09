@@ -16,7 +16,6 @@ import java.util.Map;
 
 public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter {
 
-    // Resolved reflectively so the PostgreSQL driver stays an optional dependency
     private static final @Nullable Class<?> PG_OBJECT = resolvePgObjectClass();
 
     @Override

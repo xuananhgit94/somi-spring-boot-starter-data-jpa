@@ -6,10 +6,6 @@ import com.somi.jpa.mappers.converters.ValueConversionService;
 import org.hibernate.query.TupleTransformer;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Hibernate tuple transformer that turns native query rows into DTOs, records or projections.
- * The mapping strategy is resolved once so its reflection metadata is shared by every row.
- */
 public record UniversalResultTransformer<T>(Class<T> targetClass,
                                             ObjectMappingStrategy<T> strategy) implements TupleTransformer<T> {
 

@@ -4,16 +4,8 @@ import com.somi.jpa.enums.ErrorMessage;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSourceResolvable;
 
-/**
- * Thrown for every failure of the native query starter.
- * <p>
- * Implements {@link MessageSourceResolvable} so applications can localize it with
- * {@code messageSource.getMessage(exception, locale)} by defining the {@link ErrorMessage#getCode() code}
- * in their own message bundle; {@link #getMessage()} always returns the English default.
- */
 public class NativeQueryException extends RuntimeException implements MessageSourceResolvable {
     private final ErrorMessage error;
-    // Message arguments are only needed for formatting; they may not be Serializable
     private final transient Object[] args;
 
     private NativeQueryException(ErrorMessage error, @Nullable Throwable cause, Object[] args) {

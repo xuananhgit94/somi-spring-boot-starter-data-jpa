@@ -27,7 +27,6 @@
         <module>somi-jpa-spring-boot-starter</module>
     </modules>
 
-    <!-- All library versions come from the Spring Boot BOM; do not pin them here -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -57,14 +56,11 @@
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <parameters>true</parameters>
-                    <!-- NullAway enforces the JSpecify @NullMarked/@Nullable contracts at compile time.
-                         Error Prone needs the jdk.compiler exports in .mvn/jvm.config. -->
                     <compilerArgs>
                         <arg>-XDcompilePolicy=simple</arg>
                         <arg>--should-stop=ifError=FLOW</arg>
                         <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true -XepExcludedPaths:.*/src/test/.*</arg>
                     </compilerArgs>
-                    <!-- JDK 23+ no longer runs annotation processors found on the classpath -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.springframework.boot</groupId>

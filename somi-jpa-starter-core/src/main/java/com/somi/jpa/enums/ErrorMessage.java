@@ -2,10 +2,6 @@ package com.somi.jpa.enums;
 
 import java.text.MessageFormat;
 
-/**
- * Error codes and English default templates ({@link MessageFormat} syntax).
- * Templates never include row values, only types, ids and file names, so messages are safe to log.
- */
 public enum ErrorMessage {
     LOAD_QUERY_ERROR("somi.jpa.error.query.load", "Failed to load query files from {0}"),
     DUPLICATE_QUERY_ID("somi.jpa.error.query.duplicate", "Query id {0} duplicated in file {1}"),

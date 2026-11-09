@@ -33,9 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Runs the native query behind a {@link QueryMethod} and shapes the result to the declared return type.
- */
 public class QueryByIdExecutor {
     private static final Logger log = LoggerFactory.getLogger(QueryByIdExecutor.class);
     private static final Pattern PARAMETER = Pattern.compile("\\?(\\d*)");
@@ -44,12 +41,8 @@ public class QueryByIdExecutor {
     private final QueryByIdProvider queryByIdProvider;
     private final EntityManager entityManager;
     private final ValueConversionService conversionService;
-    // Transformers are thread-safe and hold per-type reflection metadata, so share them across calls
     private final Map<Class<?>, UniversalResultTransformer<?>> transformers = new ConcurrentHashMap<>();
 
-    /**
-     * @param entityManager a shared, transaction-bound EntityManager (e.g. from {@code SharedEntityManagerCreator})
-     */
     public QueryByIdExecutor(QueryByIdProvider queryByIdProvider, EntityManager entityManager,
                              ValueConversionService conversionService) {
         this.queryByIdProvider = queryByIdProvider;
@@ -119,7 +112,6 @@ public class QueryByIdExecutor {
         }
     }
 
-    /** Inlines parameters into the SQL for debug logging only; supports both {@code ?} and {@code ?1}. */
     private static String expandSql(String sql, @Nullable Object @Nullable [] args) {
         if (args == null || args.length == 0) return sql;
         AtomicInteger next = new AtomicInteger();

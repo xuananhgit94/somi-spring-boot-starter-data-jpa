@@ -1,176 +1,153 @@
 package com.somi.jpa.executors;
+
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.enums.QueryType;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
+import com.somi.jpa.handler.QueryMethod;
 import com.somi.jpa.mappers.UniversalResultTransformer;
+import com.somi.jpa.mappers.converters.ValueConversionService;
 import com.somi.jpa.providers.QueryByIdProvider;
-import com.somi.jpa.providers.SafeEntityManagerProvider;
-import com.somi.jpa.utils.ConverterUtils;
 import com.somi.jpa.utils.TypeUtils;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import jakarta.persistence.Query;
 import org.hibernate.query.NativeQuery;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Runs the native query behind a {@link QueryMethod} and shapes the result to the declared return type.
+ */
 public class QueryByIdExecutor {
     private static final Logger log = LoggerFactory.getLogger(QueryByIdExecutor.class);
+    private static final Pattern PARAMETER = Pattern.compile("\\?(\\d*)");
+    private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private final QueryByIdProvider queryByIdProvider;
-    private SafeEntityManagerProvider safeEntityManagerProvider;
+    private final EntityManager entityManager;
+    private final ValueConversionService conversionService;
+    // Transformers are thread-safe and hold per-type reflection metadata, so share them across calls
+    private final Map<Class<?>, UniversalResultTransformer<?>> transformers = new ConcurrentHashMap<>();
 
-    public QueryByIdExecutor(QueryByIdProvider queryByIdProvider) {
+    /**
+     * @param entityManager a shared, transaction-bound EntityManager (e.g. from {@code SharedEntityManagerCreator})
+     */
+    public QueryByIdExecutor(QueryByIdProvider queryByIdProvider, EntityManager entityManager,
+                             ValueConversionService conversionService) {
         this.queryByIdProvider = queryByIdProvider;
+        this.entityManager = entityManager;
+        this.conversionService = conversionService;
     }
 
-    @Autowired
-    public void setSafeEntityManagerProvider(SafeEntityManagerProvider safeEntityManagerProvider) {
-        this.safeEntityManagerProvider = safeEntityManagerProvider;
-    }
-    @SuppressWarnings("unchecked")
-    public <T> T execute(String queryId, Object[] args, Class<?> containerType, Class<T> resultType, QueryType queryType) {
-        String sql = queryByIdProvider.getQuery(queryId);
-        if (!StringUtils.hasText(sql)) {
-            DefaultNativeQueryException.fail(ErrorMessage.QUERY_ID_NOT_FOUND, queryId);
-        }
+    public @Nullable Object execute(QueryMethod method, @Nullable Object @Nullable [] args) {
+        String sql = queryByIdProvider.getQuery(method.queryId());
         if (log.isDebugEnabled()) {
-            logExpandedSql(sql, args, queryId);
+            log.debug("Executing query [{}]:\n{}", method.queryId(), expandSql(sql, args));
         }
-        QueryType effectiveQueryType = determineEffectiveQueryType(queryType, containerType);
-        Query query = prepareQuery(sql, args);
-        if (effectiveQueryType == QueryType.MODIFIER) {
-            int rowsAffected = query.executeUpdate();
-            log.debug("Executed modifying query [{}], rows affected: {}", queryId, rowsAffected);
-            if (containerType == void.class || containerType == Void.class) {
-                return null;
-            } else if (containerType == int.class || containerType == Integer.class) {
-                return (T) Integer.valueOf(rowsAffected);
-            } else {
-                throw DefaultNativeQueryException.of(ErrorMessage.NOT_MODIFYING_QUERY, containerType.getName());
-            }
+        if (method.modifying()) {
+            return executeUpdate(method, sql, args);
+        }
+        Class<?> resultType = method.resultType();
+        List<?> rows;
+        if (resultType.isAnnotationPresent(Entity.class)) {
+            rows = bind(entityManager.createNativeQuery(sql, resultType), args).getResultList();
+        } else if (TypeUtils.isSimpleType(resultType)) {
+            rows = bind(entityManager.createNativeQuery(sql), args).getResultList().stream()
+                    .map(value -> conversionService.convert(value, resultType))
+                    .toList();
         } else {
-            boolean isOptional = containerType == Optional.class;
-            boolean isCollection = Collection.class.isAssignableFrom(containerType);
-            boolean isEntity = resultType.isAnnotationPresent(Entity.class);
-            boolean isInterface = resultType.isInterface();
-            if (isEntity) {
-                return (T) handleEntityResult(query.unwrap(NativeQuery.class).addEntity(resultType), isCollection, isOptional);
-            } else if (TypeUtils.isSimpleType(resultType)) {
-                return (T) handleScalarResult(query, resultType, isCollection, isOptional);
-            } else {
-                return (T) handleDtoResult(query, resultType, isCollection, isOptional, isInterface);
+            NativeQuery<?> nativeQuery = unwrap(bind(entityManager.createNativeQuery(sql), args));
+            nativeQuery.setTupleTransformer(transformerFor(resultType));
+            rows = nativeQuery.getResultList();
+        }
+        return shapeResult(method, rows);
+    }
+
+    private @Nullable Object executeUpdate(QueryMethod method, String sql, @Nullable Object @Nullable [] args) {
+        int rowsAffected = bind(entityManager.createNativeQuery(sql), args).executeUpdate();
+        log.debug("Query [{}] affected {} rows", method.queryId(), rowsAffected);
+        Class<?> containerType = method.containerType();
+        if (containerType == int.class || containerType == Integer.class) return rowsAffected;
+        if (containerType == long.class || containerType == Long.class) return (long) rowsAffected;
+        return null;
+    }
+
+    private static @Nullable Object shapeResult(QueryMethod method, List<?> rows) {
+        if (method.returnsCollection()) {
+            return Set.class.isAssignableFrom(method.containerType()) ? new LinkedHashSet<>(rows) : rows;
+        }
+        Object first = rows.isEmpty() ? null : rows.getFirst();
+        return method.returnsOptional() ? Optional.ofNullable(first) : first;
+    }
+
+    private UniversalResultTransformer<?> transformerFor(Class<?> resultType) {
+        return transformers.computeIfAbsent(resultType, type -> new UniversalResultTransformer<>(type, conversionService));
+    }
+
+    private static Query bind(Query query, @Nullable Object @Nullable [] args) {
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                query.setParameter(i + 1, args[i]);
             }
-        }
-    }
-    private Object handleDtoResult(Query query, Class<?> dtoClass, boolean isCollection, boolean isOptional, boolean isInterface) {
-        NativeQuery<Object> nativeQuery = unwrapTypedNativeQuery(query);
-        nativeQuery.setTupleTransformer(new UniversalResultTransformer<>(dtoClass, isInterface));
-        List<Object> resultList = nativeQuery.getResultList();
-        if (isCollection) return resultList;
-        Object single = resultList.isEmpty() ? null : resultList.getFirst();
-        return isOptional ? Optional.ofNullable(single) : single;
-    }
-    private Object handleScalarResult(Query query, Class<?> resultType, boolean isCollection, boolean isOptional) {
-        List<?> resultList = query.getResultList().stream()
-                .map(value -> ConverterUtils.convertValue(value, resultType))
-                .toList();
-        if (isCollection) return resultList;
-        Object single = resultList.isEmpty() ? null : resultList.getFirst();
-        return isOptional ? Optional.ofNullable(single) : single;
-    }
-    @SuppressWarnings("unchecked")
-    private NativeQuery<Object> unwrapTypedNativeQuery(Query query) {
-        try {
-            return query.unwrap(NativeQuery.class);
-        } catch (Exception e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.FAILED_TO_UNWRAP_QUERY);
-        }
-    }
-    private Object handleEntityResult(Query query, boolean isCollection, boolean isOptional) {
-        if (isCollection) return query.getResultList();
-        Object single = safeSingle(query);
-        return isOptional ? Optional.ofNullable(single) : single;
-    }
-    private Object safeSingle(Query query) {
-        List<?> results = query.getResultList();
-        return results.stream().findFirst().orElse(null);
-    }
-    private void logExpandedSql(String sql, Object[] args, String queryId) {
-        StringBuilder sb = new StringBuilder();
-        int paramIndex = 0;
-        if (args == null || args.length == 0) {
-            sb.append(sql);
-        } else {
-            for (int i = 0; i < sql.length(); i++) {
-                char c = sql.charAt(i);
-                if (c == '?') {
-                    if (paramIndex < args.length) {
-                        sb.append(toLiteral(args[paramIndex++]));
-                    } else {
-                        sb.append(c);
-                    }
-                } else {
-                    sb.append(c);
-                }
-            }
-        }
-        log.debug("Expanded SQL for QueryId [{}]:\n{}", queryId, sb);
-    }
-    private QueryType determineEffectiveQueryType(QueryType declaredQueryType, Class<?> containerType) {
-        if (declaredQueryType == QueryType.AUTO) {
-            return (containerType == void.class || containerType == Void.class) ? QueryType.MODIFIER : QueryType.SELECT;
-        }
-        return declaredQueryType;
-    }
-    private Query prepareQuery(String sql, Object[] args) {
-        Query query = safeEntityManagerProvider.getEntityManager().createNativeQuery(sql);
-        if (args == null || args.length == 0) {
-            return query;
-        }
-        for (int i = 0; i < args.length; i++) {
-            query.setParameter(i + 1, args[i]);
         }
         return query;
     }
-    private String toLiteral(Object param) {
-        if (param == null) return "null";
 
-        if (param instanceof Boolean b) {
-            return b ? "1" : "0";
+    private static NativeQuery<?> unwrap(Query query) {
+        try {
+            return query.unwrap(NativeQuery.class);
+        } catch (PersistenceException e) {
+            throw NativeQueryException.wrap(e, ErrorMessage.FAILED_TO_UNWRAP_QUERY);
         }
+    }
 
+    /** Inlines parameters into the SQL for debug logging only; supports both {@code ?} and {@code ?1}. */
+    private static String expandSql(String sql, @Nullable Object @Nullable [] args) {
+        if (args == null || args.length == 0) return sql;
+        AtomicInteger next = new AtomicInteger();
+        Matcher matcher = PARAMETER.matcher(sql);
+        return matcher.replaceAll(match -> {
+            int index = match.group(1).isEmpty() ? next.getAndIncrement() : Integer.parseInt(match.group(1)) - 1;
+            String replacement = index >= 0 && index < args.length ? toLiteral(args[index]) : match.group();
+            return Matcher.quoteReplacement(replacement);
+        });
+    }
+
+    private static String toLiteral(@Nullable Object param) {
         return switch (param) {
-            case Number n -> toNumberLiteral(n);
-            case CharSequence cs -> quote(cs.toString());
+            case null -> "null";
+            case Boolean b -> b ? "1" : "0";
+            case BigDecimal bd -> bd.toPlainString();
+            case Number n -> n.toString();
             case Enum<?> e -> quote(e.name());
             case UUID uuid -> quote(uuid.toString());
-            case java.util.Date d -> quote(formatDate(d));
-            case LocalDateTime ldt -> quote(ldt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            case java.util.Date d -> quote(d.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_TIME));
+            case LocalDateTime ldt -> quote(ldt.format(DATE_TIME));
             case LocalDate ld -> quote(ld.format(DateTimeFormatter.ISO_DATE));
             case LocalTime lt -> quote(lt.format(DateTimeFormatter.ISO_TIME));
             default -> quote(param.toString());
         };
     }
-    private String quote(String value) {
+
+    private static String quote(String value) {
         return "'" + value.replace("'", "''") + "'";
-    }
-    private String formatDate(java.util.Date date) {
-        return date.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime()
-                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    }
-    private String toNumberLiteral(Number n) {
-        return (n instanceof BigDecimal bd) ? bd.toPlainString() : n.toString();
     }
 }

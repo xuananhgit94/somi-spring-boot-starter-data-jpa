@@ -1,7 +1,7 @@
 package com.somi.jpa.mappers.converters;
 
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
 
 import java.lang.reflect.Type;
 import java.util.UUID;
@@ -19,7 +19,7 @@ public class UuidConverter implements ValueConverter {
         try {
             return UUID.fromString(str);
         } catch (IllegalArgumentException e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_UUID_FAIL, str);
+            throw NativeQueryException.wrap(e, ErrorMessage.STRING_TO_UUID_FAIL);
         }
     }
 }

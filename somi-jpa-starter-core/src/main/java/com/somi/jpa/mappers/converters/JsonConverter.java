@@ -1,9 +1,10 @@
 package com.somi.jpa.mappers.converters;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.type.TypeFactory;
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
 import com.somi.jpa.utils.TypeUtils;
 
 import java.lang.reflect.Method;
@@ -27,15 +28,15 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
         if (raw instanceof Map || raw instanceof Collection) {
             try {
                 return objectMapper.convertValue(raw, objectMapper.getTypeFactory().constructType(targetType));
-            } catch (IllegalArgumentException e) {
-                throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, raw, targetType.getTypeName());
+            } catch (JacksonException | IllegalArgumentException e) {
+                throw NativeQueryException.wrap(e, ErrorMessage.CONVERT_VALUE_FAIL, raw.getClass().getSimpleName(), targetType.getTypeName());
             }
         }
         String json = raw instanceof String str ? str : extractPgObjectValue(raw);
         try {
             return objectMapper.readValue(json, objectMapper.getTypeFactory().constructType(targetType));
-        } catch (Exception e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_JSON_FAIL, targetType.getTypeName(), json);
+        } catch (JacksonException e) {
+            throw NativeQueryException.wrap(e, ErrorMessage.STRING_TO_JSON_FAIL, targetType.getTypeName());
         }
     }
 
@@ -45,7 +46,7 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
             Method getType = raw.getClass().getMethod("getType");
             String type = (String) getType.invoke(raw);
             return "json".equalsIgnoreCase(type) || "jsonb".equalsIgnoreCase(type);
-        } catch (Exception e) {
+        } catch (ReflectiveOperationException _) {
             return false;
         }
     }
@@ -54,8 +55,8 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
         try {
             Method getValue = pgObject.getClass().getMethod("getValue");
             return (String) getValue.invoke(pgObject);
-        } catch (Exception e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_JSON_FAIL, "PGobject", pgObject);
+        } catch (ReflectiveOperationException e) {
+            throw NativeQueryException.wrap(e, ErrorMessage.STRING_TO_JSON_FAIL, "PGobject");
         }
     }
 }

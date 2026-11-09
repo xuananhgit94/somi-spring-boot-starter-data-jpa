@@ -1,5 +1,6 @@
 package com.somi.jpa.mappers;
 
+import com.somi.jpa.mappers.converters.ValueConversionService;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -10,6 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UniversalResultTransformerTest {
 
+    private final ValueConversionService conversion = ValueConversionService.withDefaults();
+
     private static final String[] ALIASES = {"ID", "FULL_NAME", "SALARY", "CREATED_AT"};
     private static final Object[] TUPLE = {1L, "Nguyen Van A", new BigDecimal("1000.50"), Timestamp.valueOf("2024-01-02 10:15:30")};
 
@@ -19,6 +22,10 @@ class UniversalResultTransformerTest {
         Long getId();
         String getFullName();
         LocalDateTime getCreatedAt();
+
+        default String getDisplayName() {
+            return getId() + " - " + getFullName();
+        }
     }
 
     public static class PersonDto {
@@ -39,7 +46,7 @@ class UniversalResultTransformerTest {
 
     @Test
     void mapsRecordUsingSnakeCaseAliases() {
-        var transformer = new UniversalResultTransformer<>(PersonRecord.class, false);
+        var transformer = new UniversalResultTransformer<>(PersonRecord.class, conversion);
 
         PersonRecord result = transformer.transformTuple(TUPLE, ALIASES);
 
@@ -49,7 +56,7 @@ class UniversalResultTransformerTest {
 
     @Test
     void mapsDtoThroughSetters() {
-        var transformer = new UniversalResultTransformer<>(PersonDto.class, false);
+        var transformer = new UniversalResultTransformer<>(PersonDto.class, conversion);
 
         PersonDto first = transformer.transformTuple(TUPLE, ALIASES);
         PersonDto second = transformer.transformTuple(TUPLE, ALIASES);
@@ -63,12 +70,14 @@ class UniversalResultTransformerTest {
 
     @Test
     void mapsInterfaceProjection() {
-        var transformer = new UniversalResultTransformer<>(PersonView.class, true);
+        var transformer = new UniversalResultTransformer<>(PersonView.class, conversion);
 
         PersonView view = transformer.transformTuple(TUPLE, ALIASES);
 
         assertThat(view.getId()).isEqualTo(1L);
         assertThat(view.getFullName()).isEqualTo("Nguyen Van A");
         assertThat(view.getCreatedAt()).isEqualTo(LocalDateTime.of(2024, 1, 2, 10, 15, 30));
+        assertThat(view.getDisplayName()).isEqualTo("1 - Nguyen Van A");
+        assertThat(view).isEqualTo(transformer.transformTuple(TUPLE, ALIASES));
     }
 }

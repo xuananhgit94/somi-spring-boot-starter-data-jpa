@@ -1,51 +1,52 @@
 package com.somi.jpa.handler;
 
-import com.somi.jpa.annotations.QueryId;
-import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
 import com.somi.jpa.executors.QueryByIdExecutor;
-import org.springframework.core.ResolvableType;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.Collection;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
-public record NativeQueryRepositoryHandler(Class<?> repoInterface,
-                                           QueryByIdExecutor queryByIdExecutor) implements InvocationHandler {
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if (method.getDeclaringClass() == Object.class) {
-            return method.invoke(this, args);
-        }
-        QueryId queryId = method.getAnnotation(QueryId.class);
-        if (queryId == null) {
-            DefaultNativeQueryException.fail(ErrorMessage.MISSING_QUERYID, method.getName());
-        }
-        Class<?> containerType = method.getReturnType();
-        Class<?> actualType = resolveActualReturnType(method);
-        return queryByIdExecutor.execute(queryId.value(), args, containerType, actualType, queryId.type());
-    }
+/**
+ * Backs a repository interface: every abstract method runs the native query named by its {@code @QueryId},
+ * default methods run their own body.
+ */
+public final class NativeQueryRepositoryHandler implements InvocationHandler {
+    private final Class<?> repositoryInterface;
+    private final QueryByIdExecutor queryByIdExecutor;
+    private final Map<Method, QueryMethod> queryMethods = new HashMap<>();
 
-    private Class<?> resolveActualReturnType(Method method) {
-        ResolvableType rt = ResolvableType.forMethodReturnType(method);
-        Class<?> resolved = rt.resolve();
-        if (resolved == null) {
-            DefaultNativeQueryException.fail(ErrorMessage.CANNOT_RESOLVE_RETURN_TYPE, method.getName());
-        }
-        if (Collection.class.isAssignableFrom(resolved) || Optional.class.isAssignableFrom(resolved)) {
-            Class<?> generic = rt.getGeneric(0).resolve();
-            if (generic == null) {
-                DefaultNativeQueryException.fail(ErrorMessage.CANNOT_RESOLVE_RETURN_TYPE, method.getName());
+    public NativeQueryRepositoryHandler(Class<?> repositoryInterface, QueryByIdExecutor queryByIdExecutor) {
+        this.repositoryInterface = repositoryInterface;
+        this.queryByIdExecutor = queryByIdExecutor;
+        // Validate every method up front so a broken repository fails at startup, not on first call
+        for (Method method : repositoryInterface.getMethods()) {
+            if (!method.isDefault() && !Modifier.isStatic(method.getModifiers())) {
+                queryMethods.put(method, QueryMethod.from(method));
             }
-            return generic;
         }
-        return resolved;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T createProxy() {
-        return (T) Proxy.newProxyInstance(repoInterface.getClassLoader(), new Class[]{repoInterface}, this);
+    @Override
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object @Nullable [] args) throws Throwable {
+        if (method.getDeclaringClass() == Object.class) {
+            return switch (method.getName()) {
+                case "equals" -> args != null && proxy == args[0];
+                case "hashCode" -> System.identityHashCode(proxy);
+                case "toString" -> "NativeQueryRepository[" + repositoryInterface.getName() + "]";
+                default -> method.invoke(this, args);
+            };
+        }
+        if (method.isDefault()) {
+            return InvocationHandler.invokeDefault(proxy, method, args);
+        }
+        return queryByIdExecutor.execute(queryMethods.get(method), args);
+    }
+
+    public <T> T createProxy(Class<T> type) {
+        return type.cast(Proxy.newProxyInstance(repositoryInterface.getClassLoader(), new Class<?>[]{repositoryInterface}, this));
     }
 }

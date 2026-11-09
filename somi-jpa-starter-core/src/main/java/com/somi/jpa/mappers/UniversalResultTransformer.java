@@ -1,31 +1,30 @@
 package com.somi.jpa.mappers;
+
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
-import org.hibernate.query.ResultListTransformer;
+import com.somi.jpa.exceptions.NativeQueryException;
+import com.somi.jpa.mappers.converters.ValueConversionService;
 import org.hibernate.query.TupleTransformer;
+import org.jspecify.annotations.Nullable;
 
-import java.util.*;
-
+/**
+ * Hibernate tuple transformer that turns native query rows into DTOs, records or projections.
+ * The mapping strategy is resolved once so its reflection metadata is shared by every row.
+ */
 public record UniversalResultTransformer<T>(Class<T> targetClass,
-                                            boolean isInterface,
-                                            ObjectMappingStrategy<T> strategy) implements TupleTransformer<T>, ResultListTransformer<T> {
+                                            ObjectMappingStrategy<T> strategy) implements TupleTransformer<T> {
 
-    // Resolve the strategy once so its reflection caches live for the whole result set
-    public UniversalResultTransformer(Class<T> targetClass, boolean isInterface) {
-        this(targetClass, isInterface, MappingStrategyFactory.getStrategy(targetClass, isInterface));
+    public UniversalResultTransformer(Class<T> targetClass, ValueConversionService conversionService) {
+        this(targetClass, ObjectMappingStrategy.of(targetClass, conversionService));
     }
 
     @Override
-    public List<T> transformList(List<T> list) {
-        return list;
-    }
-
-    @Override
-    public T transformTuple(Object[] tuple, String[] aliases) {
+    public T transformTuple(@Nullable Object[] tuple, String[] aliases) {
         try {
-            return strategy.map(tuple, aliases, targetClass);
-        } catch (Exception e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.FAILED_TO_MAPPER, targetClass.getSimpleName());
+            return strategy.map(tuple, aliases);
+        } catch (NativeQueryException e) {
+            throw e;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            throw NativeQueryException.wrap(e, ErrorMessage.FAILED_TO_MAPPER, targetClass.getSimpleName());
         }
     }
 }

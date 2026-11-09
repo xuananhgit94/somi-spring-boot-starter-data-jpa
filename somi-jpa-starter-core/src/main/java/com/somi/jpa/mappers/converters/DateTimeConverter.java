@@ -1,7 +1,7 @@
 package com.somi.jpa.mappers.converters;
 
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
 
 import java.lang.reflect.Type;
 import java.sql.Time;
@@ -41,7 +41,7 @@ public class DateTimeConverter implements ValueConverter {
             Instant instant = toInstant(raw);
             return cls == Instant.class ? instant : Date.from(instant);
         } catch (DateTimeParseException | IllegalArgumentException e) {
-            throw DefaultNativeQueryException.of(e, ErrorMessage.CONVERT_VALUE_FAIL, raw, cls.getSimpleName());
+            throw NativeQueryException.wrap(e, ErrorMessage.CONVERT_VALUE_FAIL, raw.getClass().getSimpleName(), cls.getSimpleName());
         }
     }
 

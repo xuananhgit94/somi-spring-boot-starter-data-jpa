@@ -1,37 +1,30 @@
 package com.somi.jpa.factories;
-import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+
 import com.somi.jpa.executors.QueryByIdExecutor;
 import com.somi.jpa.handler.NativeQueryRepositoryHandler;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Creates the proxy for one repository interface. Registered by
+ * {@link com.somi.jpa.registers.NativeQueryRepositoryRegistrar} with constructor autowiring.
+ */
 public class NativeQueryRepositoryFactoryBean<T> implements FactoryBean<T> {
     private final Class<T> repositoryInterface;
-    private QueryByIdExecutor queryByIdExecutor;
-    public NativeQueryRepositoryFactoryBean(Class<T> repositoryInterface) {
+    private final T repository;
+
+    public NativeQueryRepositoryFactoryBean(Class<T> repositoryInterface, QueryByIdExecutor queryByIdExecutor) {
         this.repositoryInterface = repositoryInterface;
+        this.repository = new NativeQueryRepositoryHandler(repositoryInterface, queryByIdExecutor)
+                .createProxy(repositoryInterface);
     }
-    @Autowired
-    public void setQueryByIdExecutor(QueryByIdExecutor queryByIdExecutor) {
-        this.queryByIdExecutor = queryByIdExecutor;
-    }
+
     @Override
     public T getObject() {
-        if (this.queryByIdExecutor == null) {
-            DefaultNativeQueryException.fail(ErrorMessage.QUERYBYIDEXECUTOR_WAS_NOT_INJECTED);
-        }
-        NativeQueryRepositoryHandler handler = new NativeQueryRepositoryHandler(repositoryInterface, queryByIdExecutor);
-        return handler.createProxy();
+        return repository;
     }
 
     @Override
-    public Class<?> getObjectType() {
+    public Class<T> getObjectType() {
         return repositoryInterface;
-    }
-
-    @Override
-    public boolean isSingleton() {
-        return true;
     }
 }

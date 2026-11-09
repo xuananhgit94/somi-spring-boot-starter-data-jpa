@@ -12,6 +12,10 @@
         WHERE id = ?1
     ]]></query>
 
+    <query id="person.findIds"><![CDATA[
+        SELECT id FROM person ORDER BY id
+    ]]></query>
+
     <query id="person.countActive"><![CDATA[
         SELECT COUNT(*) FROM person WHERE active = TRUE
     ]]></query>

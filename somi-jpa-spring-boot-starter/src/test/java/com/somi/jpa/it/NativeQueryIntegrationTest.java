@@ -1,6 +1,6 @@
 package com.somi.jpa.it;
 
-import com.somi.jpa.configs.NativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
 import com.somi.jpa.it.PersonQueries.PersonDto;
 import com.somi.jpa.it.PersonQueries.PersonRecord;
 import com.somi.jpa.it.PersonQueries.PersonView;
@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -79,6 +80,13 @@ class NativeQueryIntegrationTest {
 
         assertThat(queries.countActive()).isZero();
         assertThat(queries.findById(1L)).get().extracting(PersonRecord::status).isEqualTo(Status.INACTIVE);
+    }
+
+    @Test
+    void setReturnTypesAndDefaultMethods() {
+        assertThat(queries.findAllIds()).isInstanceOf(Set.class).containsExactly(1L, 2L);
+        assertThat(queries.findName(2L)).contains("Tran Thi B");
+        assertThat(queries).hasToString("NativeQueryRepository[" + PersonQueries.class.getName() + "]");
     }
 
     @Test

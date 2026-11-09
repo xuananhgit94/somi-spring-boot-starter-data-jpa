@@ -1,6 +1,8 @@
 package com.somi.jpa.mappers.converters;
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
+
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Type;
 
@@ -19,7 +21,7 @@ public class StringConverter implements ValueConverter {
     }
 
     @Override
-    public Object convert(Object raw, Type targetType) {
+    public @Nullable Object convert(Object raw, Type targetType) {
         String str = ((String) raw).trim();
         if (str.isEmpty()) return null;
 
@@ -27,7 +29,7 @@ public class StringConverter implements ValueConverter {
 
         if (cls == Character.class || cls == char.class) {
             if (str.length() == 1) return str.charAt(0);
-            throw DefaultNativeQueryException.of(ErrorMessage.STRING_TO_CHARACTER_FAIL, str);
+            throw NativeQueryException.of(ErrorMessage.STRING_TO_CHARACTER_FAIL, str.length());
         }
 
         if (cls == Boolean.class || cls == boolean.class) {

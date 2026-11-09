@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface PersonQueries {
 
@@ -56,6 +57,13 @@ public interface PersonQueries {
 
     @QueryId("person.findAll")
     List<Person> findAllEntities();
+
+    @QueryId("person.findIds")
+    Set<Long> findAllIds();
+
+    default Optional<String> findName(Long id) {
+        return findById(id).map(PersonRecord::fullName);
+    }
 
     @QueryId("person.countActive")
     Long countActive();

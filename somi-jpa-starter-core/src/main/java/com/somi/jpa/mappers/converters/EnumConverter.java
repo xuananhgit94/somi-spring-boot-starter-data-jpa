@@ -1,7 +1,7 @@
 package com.somi.jpa.mappers.converters;
 
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.exceptions.DefaultNativeQueryException;
+import com.somi.jpa.exceptions.NativeQueryException;
 
 import java.lang.reflect.Type;
 
@@ -26,7 +26,7 @@ public class EnumConverter implements ValueConverter {
                     return constant;
                 }
             }
-            throw DefaultNativeQueryException.of(e, ErrorMessage.STRING_TO_ENUM_FAIL, str, enumClass.getSimpleName());
+            throw NativeQueryException.wrap(e, ErrorMessage.STRING_TO_ENUM_FAIL, enumClass.getSimpleName());
         }
     }
 }

@@ -9,5 +9,10 @@ import java.lang.annotation.*;
 @Documented
 public @interface QueryId {
     String value();
+
     QueryType type() default QueryType.AUTO;
+
+    boolean flushAutomatically() default false;
+
+    boolean clearAutomatically() default false;
 }

@@ -1,5 +1,6 @@
 package com.somi.jpa.it;
 
+import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.NativeQueryException;
 import com.somi.jpa.it.PersonQueries.PersonDto;
 import com.somi.jpa.it.PersonQueries.PersonRecord;
@@ -9,6 +10,7 @@ import com.somi.jpa.providers.QueryByIdProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -94,5 +96,45 @@ class NativeQueryIntegrationTest {
         assertThatThrownBy(() -> queryByIdProvider.getQuery("missing.id"))
                 .isInstanceOf(NativeQueryException.class)
                 .hasMessageContaining("missing.id");
+    }
+
+    @Test
+    void concreteAndSortedCollectionTypes() {
+        assertThat(queries.findIdsSorted()).isInstanceOf(java.util.TreeSet.class).containsExactly(1L, 2L);
+        assertThat(queries.findIdsList()).isInstanceOf(java.util.ArrayList.class).containsExactly(1L, 2L);
+    }
+
+    @Test
+    void singleResultMethodFailsWhenSeveralRowsMatch() {
+        assertThatThrownBy(queries::findAnyOne).isInstanceOf(IncorrectResultSizeDataAccessException.class);
+    }
+
+    @Test
+    void enumAndNullParametersAreBoundByName() {
+        assertThat(queries.findByStatus(Status.ACTIVE)).hasSize(2);
+        assertThat(queries.findByStatus(Status.INACTIVE)).isEmpty();
+        assertThat(queries.findByStatus(null)).hasSize(2);
+    }
+
+    @Test
+    void sqlDateParametersWorkWithDebugLogging() {
+        assertThat(queries.findBornBefore(java.sql.Date.valueOf("1991-01-01"))).containsExactly(1L);
+    }
+
+    @Test
+    void inheritedGenericMethodsMapAndUnannotatedMethodsFailOnlyWhenCalled() {
+        assertThat(queries.findAllGeneric()).hasSize(2).first().isInstanceOf(PersonRecord.class);
+        assertThatThrownBy(queries::describe)
+                .isInstanceOfSatisfying(NativeQueryException.class,
+                        e -> assertThat(e.getError()).isEqualTo(ErrorMessage.MISSING_QUERYID));
+    }
+
+    @Test
+    void clearAutomaticallyRefreshesManagedEntities() {
+        assertThat(queries.findEntityById(1L)).get().extracting(Person::getFullName).isEqualTo("Nguyen Van A");
+
+        queries.renameAndClear(1L, "Renamed");
+
+        assertThat(queries.findEntityById(1L)).get().extracting(Person::getFullName).isEqualTo("Renamed");
     }
 }

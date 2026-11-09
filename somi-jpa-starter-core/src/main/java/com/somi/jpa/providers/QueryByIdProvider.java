@@ -50,6 +50,10 @@ public class QueryByIdProvider {
         log.info("Loaded {} queries", queries.size());
     }
 
+    public boolean contains(String id) {
+        return queries.containsKey(id);
+    }
+
     public String getQuery(String id) {
         String sql = queries.get(id);
         if (sql == null) {

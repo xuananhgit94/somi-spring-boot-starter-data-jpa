@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InterfaceProxyMappingStrategy<T> implements ObjectMappingStrategy<T> {
     private final Class<T> targetClass;
     private final ValueConversionService conversionService;
-    private final Map<Method, String> propertyNames = new ConcurrentHashMap<>();
+    private final Map<Method, String> propertyKeys = new ConcurrentHashMap<>();
 
     InterfaceProxyMappingStrategy(Class<T> targetClass, ValueConversionService conversionService) {
         this.targetClass = targetClass;
@@ -24,7 +24,7 @@ public final class InterfaceProxyMappingStrategy<T> implements ObjectMappingStra
         return targetClass.cast(Proxy.newProxyInstance(
                 targetClass.getClassLoader(),
                 new Class<?>[]{targetClass},
-                new InterfaceInvocationHandler(targetClass, row, propertyNames, conversionService)
+                new InterfaceInvocationHandler(targetClass, row, propertyKeys, conversionService)
         ));
     }
 }

@@ -90,6 +90,9 @@ class ValueConversionServiceTest {
         assertThat(conversion.convert(java.sql.Date.valueOf("2024-01-02"), LocalDate.class)).isEqualTo(LocalDate.of(2024, 1, 2));
         assertThat(conversion.convert(Time.valueOf("08:30:00"), LocalTime.class)).isEqualTo(LocalTime.of(8, 30));
         assertThat(conversion.convert(0L, Date.class)).isEqualTo(new Date(0));
+        LocalDateTime local = LocalDateTime.of(2024, 1, 5, 10, 0);
+        assertThat(conversion.convert(local, Date.class))
+                .isEqualTo(Date.from(local.atZone(java.time.ZoneId.systemDefault()).toInstant()));
     }
 
     @Test

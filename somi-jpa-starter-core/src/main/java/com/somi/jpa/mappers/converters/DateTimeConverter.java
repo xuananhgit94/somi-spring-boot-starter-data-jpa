@@ -20,7 +20,8 @@ public class DateTimeConverter implements ValueConverter {
         return cls == LocalDate.class
                 || cls == LocalDateTime.class
                 || cls == LocalTime.class
-                || cls == Instant.class;
+                || cls == Instant.class
+                || cls == java.util.Date.class;
     }
 
     @Override
@@ -34,6 +35,7 @@ public class DateTimeConverter implements ValueConverter {
                 if (raw instanceof String s && !s.contains("-")) return LocalTime.parse(s.trim());
                 return toLocalDateTime(raw).toLocalTime();
             }
+            if (cls == java.util.Date.class) return java.util.Date.from(toInstant(raw));
             return toInstant(raw);
         } catch (DateTimeParseException | IllegalArgumentException e) {
             throw NativeQueryException.wrap(e, ErrorMessage.CONVERT_VALUE_FAIL, raw.getClass().getSimpleName(), cls.getSimpleName());

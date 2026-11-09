@@ -22,9 +22,13 @@ public sealed interface ObjectMappingStrategy<T>
         Map<String, @Nullable Object> row = HashMap.newHashMap(aliases.length);
         for (int i = 0; i < aliases.length; i++) {
             if (aliases[i] != null) {
-                row.put(aliases[i].toLowerCase(Locale.ROOT), tuple[i]);
+                row.put(propertyKey(aliases[i]), tuple[i]);
             }
         }
         return row;
+    }
+
+    static String propertyKey(String name) {
+        return name.replace("_", "").toLowerCase(Locale.ROOT);
     }
 }

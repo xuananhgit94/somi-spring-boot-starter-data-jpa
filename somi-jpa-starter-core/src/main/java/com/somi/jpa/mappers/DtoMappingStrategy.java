@@ -2,14 +2,13 @@ package com.somi.jpa.mappers;
 
 import com.somi.jpa.mappers.converters.ValueConversionService;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.BeanUtils;
 
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
@@ -27,14 +26,11 @@ public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
             throw new IllegalStateException("DTO needs a no-argument constructor: " + targetClass.getName(), e);
         }
         this.constructor.trySetAccessible();
-        for (Class<?> type = targetClass; type != null && type != Object.class; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers())) continue;
-                Method setter = findSetter(targetClass, field);
-                if (setter != null) {
-                    writers.putIfAbsent(propertyKey(field.getName()),
-                            new PropertyWriter(setter, setter.getGenericParameterTypes()[0]));
-                }
+        for (PropertyDescriptor descriptor : BeanUtils.getPropertyDescriptors(targetClass)) {
+            Method setter = descriptor.getWriteMethod();
+            if (setter != null) {
+                writers.put(ObjectMappingStrategy.propertyKey(descriptor.getName()),
+                        new PropertyWriter(setter, setter.getGenericParameterTypes()[0]));
             }
         }
     }
@@ -44,25 +40,11 @@ public final class DtoMappingStrategy<T> implements ObjectMappingStrategy<T> {
         T instance = constructor.newInstance();
         for (int i = 0; i < aliases.length; i++) {
             if (aliases[i] == null) continue;
-            PropertyWriter writer = writers.get(propertyKey(aliases[i]));
+            PropertyWriter writer = writers.get(ObjectMappingStrategy.propertyKey(aliases[i]));
             if (writer != null) {
                 writer.setter().invoke(instance, conversionService.convert(tuple[i], writer.type()));
             }
         }
         return instance;
-    }
-
-    private static String propertyKey(String name) {
-        return name.replace("_", "").toLowerCase(Locale.ROOT);
-    }
-
-    private static @Nullable Method findSetter(Class<?> targetClass, Field field) {
-        String name = field.getName();
-        String setterName = "set" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-        try {
-            return targetClass.getMethod(setterName, field.getType());
-        } catch (NoSuchMethodException _) {
-            return null;
-        }
     }
 }

@@ -60,9 +60,15 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
     }
 
     private static void registerRepository(Class<?> repositoryInterface, BeanDefinitionRegistry registry) {
+        if (repositoryInterface.getTypeParameters().length > 0) {
+            return;
+        }
         String beanName = StringUtils.uncapitalizeAsProperty(repositoryInterface.getSimpleName());
         if (registry.containsBeanDefinition(beanName)) {
-            return;
+            if (repositoryInterface.equals(registry.getBeanDefinition(beanName).getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE))) {
+                return;
+            }
+            throw NativeQueryException.of(ErrorMessage.DUPLICATE_REPOSITORY_BEAN, beanName, repositoryInterface.getName());
         }
         AbstractBeanDefinition definition = BeanDefinitionBuilder
                 .genericBeanDefinition(NativeQueryRepositoryFactoryBean.class)

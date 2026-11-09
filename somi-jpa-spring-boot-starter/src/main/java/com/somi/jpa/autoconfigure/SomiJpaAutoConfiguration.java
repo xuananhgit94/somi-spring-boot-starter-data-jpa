@@ -1,6 +1,7 @@
 package com.somi.jpa.autoconfigure;
 
 import com.somi.jpa.executors.QueryByIdExecutor;
+import com.somi.jpa.executors.QueryExecutionSettings;
 import com.somi.jpa.mappers.converters.ValueConversionService;
 import com.somi.jpa.providers.QueryByIdProvider;
 import jakarta.persistence.EntityManagerFactory;
@@ -16,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.orm.jpa.SharedEntityManagerCreator;
+import org.springframework.transaction.PlatformTransactionManager;
 import tools.jackson.databind.json.JsonMapper;
 
 @AutoConfiguration(after = HibernateJpaAutoConfiguration.class)
@@ -33,16 +35,20 @@ public class SomiJpaAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public ValueConversionService somiValueConversionService(ObjectProvider<JsonMapper> jsonMapper) {
-        return new ValueConversionService(jsonMapper.getIfAvailable(() -> JsonMapper.builder().build()));
+        return new ValueConversionService(jsonMapper.getIfUnique(() -> JsonMapper.builder().build()));
     }
 
     @Bean
     @ConditionalOnMissingBean
     public QueryByIdExecutor queryByIdExecutor(QueryByIdProvider queryByIdProvider,
                                                EntityManagerFactory entityManagerFactory,
-                                               ValueConversionService somiValueConversionService) {
+                                               ValueConversionService somiValueConversionService,
+                                               ObjectProvider<PlatformTransactionManager> transactionManager,
+                                               SomiJpaProperties properties) {
         return new QueryByIdExecutor(queryByIdProvider,
                 SharedEntityManagerCreator.createSharedEntityManager(entityManagerFactory),
-                somiValueConversionService);
+                somiValueConversionService,
+                transactionManager.getIfUnique(),
+                new QueryExecutionSettings(properties.logParameterValues(), properties.queryTimeout(), properties.maxRows()));
     }
 }

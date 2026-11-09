@@ -16,7 +16,7 @@ class QueryMethodTest {
 
     interface Repo {
         @QueryId("list")
-        List<String> list();
+        List<String> list(Long id);
 
         @QueryId("optional")
         Optional<Long> optional();
@@ -24,7 +24,7 @@ class QueryMethodTest {
         @QueryId("delete")
         void delete();
 
-        @QueryId(value = "update", type = QueryType.MODIFIER)
+        @QueryId(value = "update", type = QueryType.MODIFIER, flushAutomatically = true, clearAutomatically = true)
         long update();
 
         @QueryId(value = "badUpdate", type = QueryType.MODIFIER)
@@ -33,23 +33,44 @@ class QueryMethodTest {
         String noAnnotation();
     }
 
+    interface Base<T> {
+        @QueryId("base.all")
+        List<T> findAll();
+    }
+
+    record Row(Long id) {}
+
+    interface RowRepo extends Base<Row> {}
+
     @Test
-    void resolvesElementTypesAndModifyingFlag() throws Exception {
-        assertThat(QueryMethod.from(Repo.class.getMethod("list")))
-                .isEqualTo(new QueryMethod("list", false, List.class, String.class));
-        assertThat(QueryMethod.from(Repo.class.getMethod("optional")))
-                .isEqualTo(new QueryMethod("optional", false, Optional.class, Long.class));
-        assertThat(QueryMethod.from(Repo.class.getMethod("delete")).modifying()).isTrue();
-        assertThat(QueryMethod.from(Repo.class.getMethod("update")).modifying()).isTrue();
+    void resolvesElementTypesFlagsAndParameters() throws Exception {
+        assertThat(QueryMethod.from(Repo.class.getMethod("list", Long.class), Repo.class)).isEqualTo(
+                new QueryMethod("Repo.list", "list", false, false, false, List.class, String.class, List.of(Long.class)));
+        assertThat(QueryMethod.from(Repo.class.getMethod("optional"), Repo.class).resultType()).isEqualTo(Long.class);
+        assertThat(QueryMethod.from(Repo.class.getMethod("delete"), Repo.class).modifying()).isTrue();
+        QueryMethod update = QueryMethod.from(Repo.class.getMethod("update"), Repo.class);
+        assertThat(update.modifying()).isTrue();
+        assertThat(update.flushAutomatically()).isTrue();
+        assertThat(update.clearAutomatically()).isTrue();
+    }
+
+    @Test
+    void resolvesGenericsDeclaredOnABaseInterface() throws Exception {
+        QueryMethod method = QueryMethod.from(RowRepo.class.getMethod("findAll"), RowRepo.class);
+
+        assertThat(method.resultType()).isEqualTo(Row.class);
     }
 
     @Test
     void rejectsInvalidMethodsUpFront() {
-        assertThatThrownBy(() -> QueryMethod.from(Repo.class.getMethod("badUpdate")))
+        assertThatThrownBy(() -> QueryMethod.from(Repo.class.getMethod("badUpdate"), Repo.class))
                 .isInstanceOfSatisfying(NativeQueryException.class,
                         e -> assertThat(e.getError()).isEqualTo(ErrorMessage.NOT_MODIFYING_QUERY));
-        assertThatThrownBy(() -> QueryMethod.from(Repo.class.getMethod("noAnnotation")))
+        assertThatThrownBy(() -> QueryMethod.from(Repo.class.getMethod("noAnnotation"), Repo.class))
                 .isInstanceOfSatisfying(NativeQueryException.class,
                         e -> assertThat(e.getError()).isEqualTo(ErrorMessage.MISSING_QUERYID));
+        assertThatThrownBy(() -> QueryMethod.from(Base.class.getMethod("findAll"), Base.class))
+                .isInstanceOfSatisfying(NativeQueryException.class,
+                        e -> assertThat(e.getError()).isEqualTo(ErrorMessage.CANNOT_RESOLVE_RETURN_TYPE));
     }
 }

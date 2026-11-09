@@ -79,5 +79,37 @@ class UniversalResultTransformerTest {
         assertThat(view.getCreatedAt()).isEqualTo(LocalDateTime.of(2024, 1, 2, 10, 15, 30));
         assertThat(view.getDisplayName()).isEqualTo("1 - Nguyen Van A");
         assertThat(view).isEqualTo(transformer.transformTuple(TUPLE, ALIASES));
+        assertThat(view.toString()).doesNotContain("Nguyen");
+    }
+
+    public record AddressRecord(String addressLine1, boolean active) {}
+
+    public interface AddressView {
+        String getAddressLine1();
+    }
+
+    public static class AddressDto {
+        private String addressLine1;
+        private boolean isActive;
+
+        public String getAddressLine1() { return addressLine1; }
+        public void setAddressLine1(String addressLine1) { this.addressLine1 = addressLine1; }
+        public boolean isActive() { return isActive; }
+        public void setActive(boolean active) { this.isActive = active; }
+    }
+
+    @Test
+    void recordsProjectionsAndDtosMatchColumnsTheSameWay() {
+        String[] aliases = {"ADDRESS_LINE_1", "ACTIVE"};
+        Object[] tuple = {"12 Hang Bai", true};
+
+        AddressRecord record = new UniversalResultTransformer<>(AddressRecord.class, conversion).transformTuple(tuple, aliases);
+        AddressView view = new UniversalResultTransformer<>(AddressView.class, conversion).transformTuple(tuple, aliases);
+        AddressDto dto = new UniversalResultTransformer<>(AddressDto.class, conversion).transformTuple(tuple, aliases);
+
+        assertThat(record).isEqualTo(new AddressRecord("12 Hang Bai", true));
+        assertThat(view.getAddressLine1()).isEqualTo("12 Hang Bai");
+        assertThat(dto.getAddressLine1()).isEqualTo("12 Hang Bai");
+        assertThat(dto.isActive()).isTrue();
     }
 }

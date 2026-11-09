@@ -5,6 +5,8 @@ records, projections, entities or scalars back.
 
 Requires Java 25 and Spring Boot 4.1+.
 
+Full guide (Vietnamese): [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md)
+
 ## Usage
 
 ```xml

@@ -1,0 +1,2 @@
+com.somi.jpa.NativeQueryAutoConfiguration
+com.somi.jpa.NativeQueryExceptionAutoConfiguration

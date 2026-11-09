@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.koach</groupId>
-    <artifactId>koach-starter-jpa-parent</artifactId>
+    <groupId>com.somi</groupId>
+    <artifactId>somi-starter-jpa-parent</artifactId>
     <version>0.0.1</version>
     <packaging>pom</packaging>
 
-    <name>Koach JPA Starter Parent</name>
-    <description>Parent POM for Koach Native Query Mapper Spring Boot Starter</description>
+    <name>Somi JPA Starter Parent</name>
+    <description>Parent POM for Somi Native Query Mapper Spring Boot Starter</description>
 
     <properties>
         <java.version>21</java.version>
@@ -26,8 +26,8 @@
     </properties>
 
     <modules>
-        <module>koach-jpa-starter-core</module>
-        <module>koach-jpa-spring-boot-starter</module>
+        <module>somi-jpa-starter-core</module>
+        <module>somi-jpa-spring-boot-starter</module>
     </modules>
 
     <dependencyManagement>

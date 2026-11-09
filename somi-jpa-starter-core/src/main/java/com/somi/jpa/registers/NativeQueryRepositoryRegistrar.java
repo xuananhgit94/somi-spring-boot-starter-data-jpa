@@ -1,0 +1,94 @@
+package com.somi.jpa.registers;
+
+import com.somi.jpa.annotations.EnableNativeQueries;
+import com.somi.jpa.constants.AppConstants;
+import com.somi.jpa.enums.ErrorMessage;
+import com.somi.jpa.exceptions.NativeQueryException;
+import com.somi.jpa.factories.NativeQueryRepositoryFactoryBean;
+import com.somi.jpa.filters.QueryIdMethodFilter;
+import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.context.annotation.ImportBeanDefinitionRegistrar;
+import org.springframework.core.env.Environment;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.type.AnnotationMetadata;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegistrar {
+    private final ResourceLoader resourceLoader;
+    private final Environment environment;
+
+    public NativeQueryRepositoryRegistrar(ResourceLoader resourceLoader, Environment environment) {
+        this.resourceLoader = resourceLoader;
+        this.environment = environment;
+    }
+
+    @Override
+    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+        ClassPathScanningCandidateComponentProvider scanner = createScanner();
+        for (String basePackage : resolveBasePackages(metadata)) {
+            for (BeanDefinition candidate : scanner.findCandidateComponents(basePackage)) {
+                String className = candidate.getBeanClassName();
+                if (className == null) continue;
+                try {
+                    registerRepository(ClassUtils.forName(className, resourceLoader.getClassLoader()), registry);
+                } catch (ClassNotFoundException | LinkageError e) {
+                    throw NativeQueryException.wrap(e, ErrorMessage.FAILED_TO_REGISTER, className);
+                }
+            }
+        }
+    }
+
+    private static void registerRepository(Class<?> repositoryInterface, BeanDefinitionRegistry registry) {
+        if (repositoryInterface.getTypeParameters().length > 0) {
+            return;
+        }
+        String beanName = StringUtils.uncapitalizeAsProperty(repositoryInterface.getSimpleName());
+        if (registry.containsBeanDefinition(beanName)) {
+            if (repositoryInterface.equals(registry.getBeanDefinition(beanName).getAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE))) {
+                return;
+            }
+            throw NativeQueryException.of(ErrorMessage.DUPLICATE_REPOSITORY_BEAN, beanName, repositoryInterface.getName());
+        }
+        AbstractBeanDefinition definition = BeanDefinitionBuilder
+                .genericBeanDefinition(NativeQueryRepositoryFactoryBean.class)
+                .addConstructorArgValue(repositoryInterface)
+                .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_CONSTRUCTOR)
+                .getBeanDefinition();
+        definition.setAttribute(FactoryBean.OBJECT_TYPE_ATTRIBUTE, repositoryInterface);
+        registry.registerBeanDefinition(beanName, definition);
+    }
+
+    private ClassPathScanningCandidateComponentProvider createScanner() {
+        ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(false, environment) {
+            @Override
+            protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+                return beanDefinition.getMetadata().isInterface() && beanDefinition.getMetadata().isIndependent();
+            }
+        };
+        scanner.setResourceLoader(resourceLoader);
+        scanner.addIncludeFilter(new QueryIdMethodFilter());
+        return scanner;
+    }
+
+    private static Set<String> resolveBasePackages(AnnotationMetadata metadata) {
+        var attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
+        if (attributes != null && attributes.get(AppConstants.BASE_PACKAGE_SCAN) instanceof String[] basePackages) {
+            Set<String> packages = Arrays.stream(basePackages).filter(StringUtils::hasText).collect(Collectors.toSet());
+            if (!packages.isEmpty()) {
+                return packages;
+            }
+        }
+        return Set.of(ClassUtils.getPackageName(metadata.getClassName()));
+    }
+}

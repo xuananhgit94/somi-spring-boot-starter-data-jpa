@@ -4,75 +4,37 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.koach</groupId>
-    <artifactId>koach-starter-jpa-parent</artifactId>
+    <groupId>com.somi</groupId>
+    <artifactId>somi-starter-jpa-parent</artifactId>
     <version>0.0.1</version>
     <packaging>pom</packaging>
 
-    <name>Koach JPA Starter Parent</name>
-    <description>Parent POM for Koach Native Query Mapper Spring Boot Starter</description>
+    <name>Somi JPA Starter Parent</name>
+    <description>Parent POM for Somi Native Query Mapper Spring Boot Starter</description>
 
     <properties>
-        <java.version>21</java.version>
-        <spring-boot.version>3.5.3</spring-boot.version>
-        <lombok.version>1.18.38</lombok.version>
-        <jakarta-persistence.version>3.1.0</jakarta-persistence.version>
-        <hibernate-core.version>7.0.6.Final</hibernate-core.version>
-        <logback.version>1.5.18</logback.version>
-        <jackson-databind.version>2.19.1</jackson-databind.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <java.version>25</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <spring-boot.version>4.1.2</spring-boot.version>
+        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <error-prone.version>2.51.0</error-prone.version>
+        <nullaway.version>0.14.3</nullaway.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <modules>
-        <module>koach-jpa-starter-core</module>
-        <module>koach-jpa-spring-boot-starter</module>
+        <module>somi-jpa-starter-core</module>
+        <module>somi-jpa-spring-boot-starter</module>
     </modules>
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-framework-bom</artifactId>
-                <version>6.2.10</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.persistence</groupId>
-                <artifactId>jakarta.persistence-api</artifactId>
-                <version>${jakarta-persistence.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.hibernate.orm</groupId>
-                <artifactId>hibernate-core</artifactId>
-                <version>${hibernate-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -87,6 +49,38 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <parameters>true</parameters>
+                    <compilerArgs>
+                        <arg>-XDcompilePolicy=simple</arg>
+                        <arg>--should-stop=ifError=FLOW</arg>
+                        <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true -XepExcludedPaths:.*/src/test/.*</arg>
+                    </compilerArgs>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${spring-boot.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.google.errorprone</groupId>
+                            <artifactId>error_prone_core</artifactId>
+                            <version>${error-prone.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.uber.nullaway</groupId>
+                            <artifactId>nullaway</artifactId>
+                            <version>${nullaway.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
 </project>

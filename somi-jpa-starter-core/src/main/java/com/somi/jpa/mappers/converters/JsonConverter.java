@@ -1,5 +1,7 @@
 package com.somi.jpa.mappers.converters;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.util.ClassUtils;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.type.TypeFactory;
@@ -13,6 +15,9 @@ import java.util.Collection;
 import java.util.Map;
 
 public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter {
+
+    // Resolved reflectively so the PostgreSQL driver stays an optional dependency
+    private static final @Nullable Class<?> PG_OBJECT = resolvePgObjectClass();
 
     @Override
     public boolean supports(Object raw, Type targetType) {
@@ -41,7 +46,7 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
     }
 
     private boolean isPgObject(Object raw) {
-        if (!"org.postgresql.util.PGobject".equals(raw.getClass().getName())) return false;
+        if (PG_OBJECT == null || !PG_OBJECT.isInstance(raw)) return false;
         try {
             Method getType = raw.getClass().getMethod("getType");
             String type = (String) getType.invoke(raw);
@@ -58,5 +63,11 @@ public record JsonConverter(ObjectMapper objectMapper) implements ValueConverter
         } catch (ReflectiveOperationException e) {
             throw NativeQueryException.wrap(e, ErrorMessage.STRING_TO_JSON_FAIL, "PGobject");
         }
+    }
+
+    private static @Nullable Class<?> resolvePgObjectClass() {
+        ClassLoader classLoader = JsonConverter.class.getClassLoader();
+        String name = "org.postgresql.util.PGobject";
+        return ClassUtils.isPresent(name, classLoader) ? ClassUtils.resolveClassName(name, classLoader) : null;
     }
 }

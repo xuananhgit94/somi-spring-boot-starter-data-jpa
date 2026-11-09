@@ -134,7 +134,7 @@ public class QueryByIdExecutor {
     private static String toLiteral(@Nullable Object param) {
         return switch (param) {
             case null -> "null";
-            case Boolean b -> b ? "1" : "0";
+            case Boolean b -> Boolean.TRUE.equals(b) ? "1" : "0";
             case BigDecimal bd -> bd.toPlainString();
             case Number n -> n.toString();
             case Enum<?> e -> quote(e.name());

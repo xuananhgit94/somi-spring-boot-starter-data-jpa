@@ -2,7 +2,6 @@ package com.somi.jpa.handler;
 
 import com.somi.jpa.annotations.QueryId;
 import com.somi.jpa.enums.ErrorMessage;
-import com.somi.jpa.enums.QueryType;
 import com.somi.jpa.exceptions.NativeQueryException;
 import org.springframework.core.ResolvableType;
 

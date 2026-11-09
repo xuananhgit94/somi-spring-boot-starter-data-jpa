@@ -1,7 +1,6 @@
 package com.somi.jpa.mappers.converters;
 
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.type.TypeFactory;
 
 import java.lang.reflect.Type;
 import java.util.Collection;

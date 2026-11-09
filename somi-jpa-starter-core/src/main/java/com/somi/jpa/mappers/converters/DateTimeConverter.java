@@ -64,7 +64,6 @@ public class DateTimeConverter implements ValueConverter {
             case Timestamp ts -> ts.toInstant();
             // java.sql.Date.toInstant() throws UnsupportedOperationException
             case java.sql.Date d -> d.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
-            case java.util.Date d -> d.toInstant();
             case Instant i -> i;
             case OffsetDateTime odt -> odt.toInstant();
             case ZonedDateTime zdt -> zdt.toInstant();

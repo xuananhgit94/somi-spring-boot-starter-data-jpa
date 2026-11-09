@@ -13,7 +13,8 @@ import org.springframework.context.MessageSourceResolvable;
  */
 public class NativeQueryException extends RuntimeException implements MessageSourceResolvable {
     private final ErrorMessage error;
-    private final Object[] args;
+    // Message arguments are only needed for formatting; they may not be Serializable
+    private final transient Object[] args;
 
     private NativeQueryException(ErrorMessage error, @Nullable Throwable cause, Object[] args) {
         super(error.format(args), cause);

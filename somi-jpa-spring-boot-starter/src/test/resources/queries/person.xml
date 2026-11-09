@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<queries>
+    <query id="person.findAll"><![CDATA[
+        SELECT id, full_name, status, salary, active, birth_date, created_at
+        FROM person
+        ORDER BY id
+    ]]></query>
+
+    <query id="person.findById"><![CDATA[
+        SELECT id, full_name, status, salary, active, birth_date, created_at
+        FROM person
+        WHERE id = ?1
+    ]]></query>
+
+    <query id="person.countActive"><![CDATA[
+        SELECT COUNT(*) FROM person WHERE active = TRUE
+    ]]></query>
+
+    <query id="person.deactivate"><![CDATA[
+        UPDATE person SET active = FALSE, status = 'inactive' WHERE id = ?1
+    ]]></query>
+</queries>

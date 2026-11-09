@@ -4,8 +4,6 @@ import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.NativeQueryException;
 
 import java.lang.reflect.Type;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,7 +36,7 @@ public class DateTimeConverter implements ValueConverter {
             if (cls == LocalDate.class) return toLocalDateTime(raw).toLocalDate();
             if (cls == LocalDateTime.class) return toLocalDateTime(raw);
             if (cls == LocalTime.class) {
-                if (raw instanceof Time t) return t.toLocalTime();
+                if (raw instanceof java.sql.Time t) return t.toLocalTime();
                 if (raw instanceof String s && !s.contains("-")) return LocalTime.parse(s.trim());
                 return toLocalDateTime(raw).toLocalTime();
             }
@@ -50,7 +48,7 @@ public class DateTimeConverter implements ValueConverter {
 
     private LocalDateTime toLocalDateTime(Object raw) {
         return switch (raw) {
-            case Timestamp ts -> ts.toLocalDateTime();
+            case java.sql.Timestamp ts -> ts.toLocalDateTime();
             case java.sql.Date d -> d.toLocalDate().atStartOfDay();
             case LocalDateTime ldt -> ldt;
             case LocalDate ld -> ld.atStartOfDay();
@@ -63,7 +61,7 @@ public class DateTimeConverter implements ValueConverter {
 
     private Instant toInstant(Object raw) {
         return switch (raw) {
-            case Timestamp ts -> ts.toInstant();
+            case java.sql.Timestamp ts -> ts.toInstant();
             // java.sql.Date.toInstant() throws UnsupportedOperationException
             case java.sql.Date d -> d.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
             case Instant i -> i;

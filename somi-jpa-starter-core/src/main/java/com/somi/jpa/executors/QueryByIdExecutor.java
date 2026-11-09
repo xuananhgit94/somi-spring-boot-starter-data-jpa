@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -139,7 +138,6 @@ public class QueryByIdExecutor {
             case Number n -> n.toString();
             case Enum<?> e -> quote(e.name());
             case UUID uuid -> quote(uuid.toString());
-            case java.util.Date d -> quote(d.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_TIME));
             case LocalDateTime ldt -> quote(ldt.format(DATE_TIME));
             case LocalDate ld -> quote(ld.format(DateTimeFormatter.ISO_DATE));
             case LocalTime lt -> quote(lt.format(DateTimeFormatter.ISO_TIME));

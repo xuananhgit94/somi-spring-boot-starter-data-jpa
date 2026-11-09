@@ -62,7 +62,8 @@ public class QueryByIdProvider {
     }
 
     private static void loadFile(Resource resource, DocumentBuilder builder, Map<String, String> queries) {
-        String fileName = resource.getFilename();
+        // getFilename() is null for some resource types; the description always identifies the file
+        String fileName = resource.getDescription();
         log.debug("Processing query file {}", fileName);
         Document document;
         try (InputStream in = resource.getInputStream()) {

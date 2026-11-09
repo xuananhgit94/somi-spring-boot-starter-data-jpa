@@ -43,7 +43,11 @@ public final class NativeQueryRepositoryHandler implements InvocationHandler {
         if (method.isDefault()) {
             return InvocationHandler.invokeDefault(proxy, method, args);
         }
-        return queryByIdExecutor.execute(queryMethods.get(method), args);
+        QueryMethod queryMethod = queryMethods.get(method);
+        if (queryMethod == null) {
+            throw new IllegalStateException("Not a query method of " + repositoryInterface.getName() + ": " + method);
+        }
+        return queryByIdExecutor.execute(queryMethod, args);
     }
 
     public <T> T createProxy(Class<T> type) {

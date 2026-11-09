@@ -6,6 +6,7 @@ import com.somi.jpa.enums.ErrorMessage;
 import com.somi.jpa.exceptions.NativeQueryException;
 import com.somi.jpa.factories.NativeQueryRepositoryFactoryBean;
 import com.somi.jpa.filters.QueryIdMethodFilter;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -94,7 +95,7 @@ public class NativeQueryRepositoryRegistrar implements ImportBeanDefinitionRegis
     }
 
     private static Set<String> resolveBasePackages(AnnotationMetadata metadata) {
-        Map<String, Object> attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
+        @Nullable Map<String, @Nullable Object> attributes = metadata.getAnnotationAttributes(EnableNativeQueries.class.getName());
         if (attributes != null && attributes.get(AppConstants.BASE_PACKAGE_SCAN) instanceof String[] basePackages) {
             Set<String> packages = Arrays.stream(basePackages).filter(StringUtils::hasText).collect(Collectors.toSet());
             if (!packages.isEmpty()) {

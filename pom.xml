@@ -17,6 +17,8 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <spring-boot.version>4.1.2</spring-boot.version>
         <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <error-prone.version>2.51.0</error-prone.version>
+        <nullaway.version>0.14.3</nullaway.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -55,12 +57,29 @@
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <parameters>true</parameters>
+                    <!-- NullAway enforces the JSpecify @NullMarked/@Nullable contracts at compile time.
+                         Error Prone needs the jdk.compiler exports in .mvn/jvm.config. -->
+                    <compilerArgs>
+                        <arg>-XDcompilePolicy=simple</arg>
+                        <arg>--should-stop=ifError=FLOW</arg>
+                        <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true -XepExcludedPaths:.*/src/test/.*</arg>
+                    </compilerArgs>
                     <!-- JDK 23+ no longer runs annotation processors found on the classpath -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.springframework.boot</groupId>
                             <artifactId>spring-boot-configuration-processor</artifactId>
                             <version>${spring-boot.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.google.errorprone</groupId>
+                            <artifactId>error_prone_core</artifactId>
+                            <version>${error-prone.version}</version>
+                        </path>
+                        <path>
+                            <groupId>com.uber.nullaway</groupId>
+                            <artifactId>nullaway</artifactId>
+                            <version>${nullaway.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

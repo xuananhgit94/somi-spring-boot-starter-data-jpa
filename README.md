@@ -48,14 +48,44 @@ interface PersonQueries {
 }
 ```
 
-Columns map to properties by name, ignoring case and underscores (`full_name` -> `fullName`).
-Modifying queries must run inside a transaction.
+Columns map to record components, setters and projection getters by name, ignoring case and
+underscores (`full_name` and `address_line_1` match `fullName` and `addressLine1`).
+
+- A method returning a single value fails with `IncorrectResultSizeDataAccessException` when several rows match.
+- Collection return types may be `List`, `Set`, `Collection` or concrete/sorted types such as `TreeSet`.
+- Enum parameters are bound by `name()`; `null` parameters are bound with the declared parameter type.
+- Every `@QueryId` is checked against the loaded XML at startup, so a typo fails the application start.
+- Repository interfaces may extend generic base interfaces; generic interfaces themselves are not registered.
+
+## Transactions
+
+When the application has a single `PlatformTransactionManager`, read queries run in a read-only
+transaction and modifying queries in a read-write one. Both join the caller's transaction when there is one,
+so calling a repository from a `@Transactional` service behaves as usual.
+
+Native `UPDATE`/`DELETE` statements bypass the persistence context. Use the `@QueryId` flags when entities
+loaded in the same transaction must see the change:
+
+```java
+@QueryId(value = "person.rename", type = QueryType.MODIFIER,
+         flushAutomatically = true, clearAutomatically = true)
+int rename(Long id, String name);
+```
+
+JPA and Hibernate errors are translated to Spring's `DataAccessException` hierarchy
+(e.g. `DataIntegrityViolationException`).
 
 ## Configuration
 
-| Property                   | Default                         |
-|----------------------------|---------------------------------|
-| `somi.jpa.query-locations` | `classpath*:/queries/**/*.xml`  |
+| Property                         | Default                        | Meaning                                                      |
+|----------------------------------|--------------------------------|--------------------------------------------------------------|
+| `somi.jpa.query-locations`       | `classpath*:/queries/**/*.xml` | XML query files                                              |
+| `somi.jpa.log-parameter-values`  | `false`                        | Inline parameter values into the DEBUG SQL log               |
+| `somi.jpa.query-timeout`         | none                           | Timeout for every query, e.g. `10s`                          |
+| `somi.jpa.max-rows`              | none                           | Collection queries returning more rows fail with `MAX_ROWS_EXCEEDED` |
+
+Keep `log-parameter-values` off in production: parameters often hold personal data.
+Query ids are global across all jars on the classpath, so prefix them (`orders.findById`).
 
 JSON columns are read with the application's Jackson 3 `JsonMapper` when one is defined.
 
@@ -79,3 +109,6 @@ and call `messageSource.getMessage(exception, locale)`.
 | `MessageResolver` / `DefaultNativeQueryException` | removed, see [Errors](#errors)                  |
 | message keys `error.*`                         | `somi.jpa.error.*`, `{0}`-style placeholders       |
 | Java 21, Spring Boot 3.5, Jackson 2            | Java 25, Spring Boot 4.1, Jackson 3                |
+| XML files with `<!DOCTYPE ...>`                | rejected (XXE protection); remove the DOCTYPE      |
+| single-value method silently took the first row | `IncorrectResultSizeDataAccessException`          |
+| enum parameters bound by Hibernate defaults    | bound by `name()`                                  |

@@ -14,14 +14,16 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.Date;
 
+/**
+ * Converts JDBC and string values to {@code java.time} types. Legacy {@code java.util.Date} targets are not
+ * produced here: a {@code Timestamp} is already a {@code Date}, other values go through Jackson.
+ */
 public class DateTimeConverter implements ValueConverter {
     @Override
     public boolean supports(Object raw, Type targetType) {
         if (!(targetType instanceof Class<?> cls)) return false;
-        return cls == Date.class
-                || cls == LocalDate.class
+        return cls == LocalDate.class
                 || cls == LocalDateTime.class
                 || cls == LocalTime.class
                 || cls == Instant.class;
@@ -38,8 +40,7 @@ public class DateTimeConverter implements ValueConverter {
                 if (raw instanceof String s && !s.contains("-")) return LocalTime.parse(s.trim());
                 return toLocalDateTime(raw).toLocalTime();
             }
-            Instant instant = toInstant(raw);
-            return cls == Instant.class ? instant : Date.from(instant);
+            return toInstant(raw);
         } catch (DateTimeParseException | IllegalArgumentException e) {
             throw NativeQueryException.wrap(e, ErrorMessage.CONVERT_VALUE_FAIL, raw.getClass().getSimpleName(), cls.getSimpleName());
         }
@@ -63,7 +64,7 @@ public class DateTimeConverter implements ValueConverter {
             case Timestamp ts -> ts.toInstant();
             // java.sql.Date.toInstant() throws UnsupportedOperationException
             case java.sql.Date d -> d.toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
-            case Date d -> d.toInstant();
+            case java.util.Date d -> d.toInstant();
             case Instant i -> i;
             case OffsetDateTime odt -> odt.toInstant();
             case ZonedDateTime zdt -> zdt.toInstant();
@@ -84,7 +85,7 @@ public class DateTimeConverter implements ValueConverter {
     private Instant parseInstant(String s) {
         try {
             return Instant.parse(s);
-        } catch (DateTimeParseException e) {
+        } catch (DateTimeParseException _) {
             return parseLocalDateTime(s).atZone(ZoneId.systemDefault()).toInstant();
         }
     }
